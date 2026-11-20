@@ -82,7 +82,11 @@ quantities and rates. Items can list both monster drops and quest rewards.
 - The dedicated **Set Builder** sidebar section searches for up to six requested activated skills using
   your character's gender, hunter type, equipped weapon slots and progression.
   It includes unowned armor without requiring crafting stock, and checks every
-  owned charm. Choose skills with B, then Y to search or pause. All skills shows bonus skills,
+  owned charm. Requested skills are minimums, so higher tiers remain eligible.
+  Spare slots are refined for bonus skills using available decorations, without
+  breaking the requested skills. This bounded search does not guarantee the best
+  possible combination. Choose skills with B, then Y to search or pause.
+  L3 (F10 on keyboard) opens All skills directly. The summary shows bonus skills,
   penalties and inactive skill-point totals; slot icons and decoration placements
   show how armor, charm and weapon slots are used. Left/Right selects
   a build; Up/Down selects a piece or its decoration placements. R3 adds missing

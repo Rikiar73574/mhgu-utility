@@ -84,3 +84,9 @@ impl Evaluator {
 }
 
 fn native(points: i16) -> i16 { points as i8 as i16 }
+
+/// Higher activated tiers count as upgrades; only points past that tier are excess.
+pub fn tier_score(points:i16,minimum:i16,thresholds:impl Iterator<Item=i16>)->(u16,u16){
+ let achieved=thresholds.filter(|&p|p>0&&p<=points).max().unwrap_or(minimum);
+ ((achieved-minimum).max(0)as u16,(points-achieved).max(0)as u16)
+}

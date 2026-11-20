@@ -551,3 +551,84 @@ impl Solver {
         None
     }
 }
+
+/// Bounded, allocation-free spare-slot and decoration-swap improvement. Each tick evaluates at most
+/// `budget` jewel/bin pairs; each pass scans the complete supplied jewel catalog.
+/// The caller evaluates every skill tree and rejects penalties or broken goals.
+/// Each result uses at most 8192 edges and 42 improving passes, returning search
+/// time to other equipment combinations. This is not an optimality proof.
+pub struct DecorationRefiner {
+    current: Solution,
+    score: [u32; 10],
+    best: Solution,
+    best_score: [u32; 10],
+    remaining: [u8; BINS],
+    capacity: [u8; BINS],
+    passes: u8,
+    jewel: u32,
+    bin: usize,
+    complete: bool,
+    pub work_done: u64,
+}
+impl DecorationRefiner {
+    pub fn new(current: Solution, capacity: [u8; BINS], costs: impl Fn(u32) -> u8, score: [u32; 10]) -> Option<Self> {
+        if current.jewel_count as usize > MAX_JEWELS { return None; }
+        let mut remaining = capacity;
+        for placement in &current.jewels[..current.jewel_count as usize] {
+            let bin = placement.gear as usize;
+            if bin >= BINS { return None; }
+            let cost = costs(placement.jewel);
+            if cost == 0 || cost > remaining[bin] { return None; }
+            remaining[bin] -= cost;
+        }
+        Some(Self { current, score, best: current, best_score: score, remaining, capacity, passes: 0, jewel: 0, bin: 0, complete: false, work_done: 0 })
+    }
+    /// Returns the latest committed improvement and whether refinement is done.
+    /// `evaluate` may update requested totals after full native arithmetic.
+    pub fn tick(&mut self, jewel_count: u32, costs: impl Fn(u32) -> u8, mut evaluate: impl FnMut(&mut Solution) -> Option<[u32; 10]>, budget: u32) -> (Solution, bool) {
+        for _ in 0..budget {
+            if self.complete { break; }
+            if self.work_done >= 8192 {
+                self.current = self.best;
+                self.complete = true;
+                break;
+            }
+            self.work_done += 1;
+            if self.jewel == jewel_count {
+                if self.best_score >= self.score || self.passes as usize == MAX_JEWELS * 2 {
+                    self.complete = true;
+                    break;
+                }
+                self.current = self.best;
+                self.score = self.best_score;
+                self.passes += 1;
+                self.remaining = self.capacity;
+                for p in &self.current.jewels[..self.current.jewel_count as usize] { self.remaining[p.gear as usize] -= costs(p.jewel); }
+                self.jewel = 0;
+                self.bin = 0;
+                continue;
+            }
+            let jewel = self.jewel;
+            let bin = self.bin;
+            self.bin += 1;
+            if self.bin == BINS + self.current.jewel_count as usize { self.bin = 0; self.jewel += 1; }
+            let cost = costs(jewel);
+            if cost == 0 { continue; }
+            let mut candidate = self.current;
+            if bin < BINS {
+                if cost > self.remaining[bin] || candidate.jewel_count as usize == MAX_JEWELS { continue; }
+                candidate.jewels[candidate.jewel_count as usize] = Placement { jewel, gear: bin as u8 };
+                candidate.jewel_count += 1;
+            } else {
+                let at = bin - BINS;
+                let old = candidate.jewels[at];
+                if cost > self.remaining[old.gear as usize] + costs(old.jewel) { continue; }
+                candidate.jewels[at] = Placement { jewel, gear: old.gear };
+            }
+            if let Some(score) = evaluate(&mut candidate) {
+                if score < self.best_score { self.best = candidate; self.best_score = score; }
+            }
+        }
+        (self.current, self.complete)
+    }
+}

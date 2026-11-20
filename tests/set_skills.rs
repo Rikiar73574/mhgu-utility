@@ -158,3 +158,13 @@ fn full_evaluation_matches_solver_native_totals_across_wrapping_and_specials() {
         }
     }
 }
+
+#[test]
+fn higher_activated_tiers_are_useful_not_wasted_points() {
+    let tiers = [10, 15, 20];
+    assert_eq!(tier_score(10, 10, tiers.into_iter()), (0, 0));
+    assert_eq!(tier_score(15, 10, tiers.into_iter()), (5, 0));
+    assert_eq!(tier_score(20, 10, tiers.into_iter()), (10, 0));
+    assert_eq!(tier_score(25, 10, tiers.into_iter()), (10, 5));
+    assert_eq!(tier_score(20, 20, tiers.into_iter()), (0, 0));
+}

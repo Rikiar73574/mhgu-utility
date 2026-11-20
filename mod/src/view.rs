@@ -400,7 +400,7 @@ fn set_builder_view(c:&Canvas,u:&Ui){
  if profile.status==player::Status::Ready{let _=write!(heading,"{}   {}   HR {}   {} weapon slots   {} owned charms",if profile.gender==Some(0){"Male"}else{"Female"},if profile.hunter==Some(0){"Blademaster"}else{"Gunner"},profile.hr.unwrap_or(0),profile.weapon_slots.unwrap_or(0),profile.charm_count);}else{let _=write!(heading,"Character snapshot unavailable");}
  c.text(225.0,112.0,heading.str(),GOLD,16.0);
  if !state.show_results{
-  c.text(225.0,150.0,"Choose activated skills",CYAN,20.0);c.text(750.0,150.0,"Requested skills",CYAN,20.0);
+  c.text(225.0,150.0,"Choose activated skills",CYAN,20.0);c.text(750.0,150.0,"Minimum skills",CYAN,20.0);
   let start=u.selected/11*11;
   for i in start..(start+11).min(u.count){let id=u.results[i]as usize;let a=&data::ACTIVATIONS[id];let y=190.0+(i-start)as f32*42.0;
    c.card(218.0,y,502.0,36.0,i==u.selected);c.hit(218.0,y,502.0,36.0,Action::BuilderSelect(id));
@@ -428,11 +428,17 @@ fn set_builder_view(c:&Canvas,u:&Ui){
   c.text(804.0,232.0,"Owned talisman",CYAN,19.0);
   if result.charm==0{c.text(804.0,265.0,"No talisman required",TEXT,17.0);}else{let charm=&profile.charms[result.charm as usize-1];let mut label=Text::new();let _=write!(label,"Equipment box #{}",charm.box_index+1);c.text(804.0,264.0,label.str(),TEXT,17.0);for(i,skill)in charm.skills.iter().filter(|s|s.tree!=0).enumerate(){let mut line=Text::new();let _=write!(line,"{} {:+}",data::TREE_NAMES[skill.tree as usize],skill.points);c.text(804.0,294.0+i as f32*24.0,line.str(),TEXT,17.0);}set_slots(c,804.0,347.0,charm.slots,used[5]);}
   c.text(804.0,393.0,"Skills from this build",CYAN,19.0);
-  let mut shown=0;for &tree in &state.skill_rows[..state.skill_count]{let p=state.totals.points[tree as usize];if builder::skill_name(tree)=="Not active"{continue;}let mut line=Text::new();if let Some(target)=builder::target(tree){let _=write!(line,"{}  {} / {}",builder::skill_name(tree),p,target);}else{let _=write!(line,"{}  {:+}",builder::skill_name(tree),p);}c.clip(799.0,424.0+shown as f32*26.0,451.0,25.0);c.text(804.0,426.0+shown as f32*26.0,line.str(),if p<0{0xff8888ee}else{TEXT},17.0);c.endclip();shown+=1;if shown==6{break;}}
-  if state.active_count>shown{c.text(804.0,581.0,"More skills in All skills",MUTED,14.0);}
+  let mut shown=0;for &tree in &state.skill_rows[..state.skill_count]{
+   let p=state.totals.points[tree as usize];let active=builder::activation(tree,p);
+   let threshold=active.map(|i|data::ACTIVATIONS[i].points).or_else(||builder::target(tree)).or_else(||data::ACTIVATIONS.iter().filter(|a|a.tree==tree&&(a.points>0)==(p>0)).min_by_key(|a|a.points.abs()).map(|a|a.points));
+   let name=if active.is_some(){builder::skill_name(tree)}else{data::TREE_NAMES[tree as usize]};let mut line=Text::new();
+   if let Some(target)=threshold{if active.is_some(){let _=write!(line,"{}  {} / {}",name,p,target);}else{let _=write!(line,"{}  {:+} / {}",name,p,target);}}else{let _=write!(line,"{}  {:+}",name,p);}
+   c.clip(799.0,424.0+shown as f32*26.0,451.0,25.0);c.text(804.0,426.0+shown as f32*26.0,line.str(),if p<0{0xff8888ee}else if active.is_some(){TEXT}else{MUTED},17.0);c.endclip();shown+=1;if shown==6{break;}
+  }
+  if state.skill_count>shown{c.text(804.0,581.0,"More points in All skills",MUTED,14.0);}
   c.card(218.0,598.0,271.0,58.0,state.piece==5);c.hit(218.0,598.0,271.0,58.0,Action::BuilderJewels);
-  let mut jewels=Text::new();let _=write!(jewels,"B  Decorations: {}",result.jewel_count);c.hint(230.0,616.0,jewels.str(),CYAN,17.0);
-  c.card(502.0,598.0,274.0,58.0,state.piece==6);c.hit(502.0,598.0,274.0,58.0,Action::BuilderSkills);let mut label=Text::new();let _=write!(label,"B  All skills ({})",state.active_count);c.hint(514.0,616.0,label.str(),CYAN,17.0);
+  let mut jewels=Text::new();let _=write!(jewels,"{}Decorations: {}",if state.piece==5{"B  "}else{""},result.jewel_count);c.hint(230.0,616.0,jewels.str(),CYAN,17.0);
+  c.card(502.0,598.0,274.0,58.0,state.piece==6);c.hit(502.0,598.0,274.0,58.0,Action::BuilderSkills);let mut label=Text::new();let _=write!(label,"{}All skills ({})",if state.piece==6{"B  "}else{"L3  "},state.skill_count);c.hint(514.0,616.0,label.str(),CYAN,17.0);
 
   c.text(225.0,687.0,if builder::unverified(){"Availability unverified for some equipment."}else{"Progression availability verified."},GOLD,16.0);
   if missing>0{c.card(802.0,598.0,446.0,42.0,false);c.hint(816.0,610.0,if super::wishlist::failed(){"Wishlist save failed"}else{"R3  Add missing armor to wishlist"},GOLD,17.0);c.hit(802.0,598.0,446.0,42.0,Action::BuilderWish);}

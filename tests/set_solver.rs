@@ -306,3 +306,77 @@ fn refinement_can_finish_after_working_without_skipping_unseen_equipment() {
     assert_eq!(actual, expected);
     assert!(!solver.finish_equipment());
 }
+
+#[test]
+fn spare_slot_refinement_is_incremental_uses_all_jewels_and_preserves_minimums() {
+    // The exact solver supplies a minimum-valid armor/charm combination. Refining
+    // must pass over 80 irrelevant entries, use two jewels to activate the bonus,
+    // then use the final slot to upgrade the requested skill beyond its minimum.
+    let mut d=base();d.armor[0][0]=gear(10,6,3);
+    d.jewels=vec![jewel(0,0,1);80];
+    d.jewels.push(jewel(-6,10,1)); // Would break Attack S: reject.
+    d.jewels.push(jewel(0,2,1));
+    d.jewels.push(jewel(5,0,1));
+    let q=query(10,0);
+    let mut solver=Solver::new(q);
+    let seed=loop{if let Tick::Found(s)=solver.tick(&d,1){break s;}};
+    assert_eq!(seed.jewel_count,0);
+    fn score(d:&Data,s:&mut Solution)->Option<[u32;10]>{
+        let mut attack=d.armor[0][0].points[0]as i32;
+        let mut defense=d.armor[0][0].points[1]as i32;
+        for p in &s.jewels[..s.jewel_count as usize]{attack+=d.jewels[p.jewel as usize].points[0]as i32;defense+=d.jewels[p.jewel as usize].points[1]as i32;}
+        if attack<10{return None;}
+        s.totals[0]=attack;s.totals[1]=defense;
+        Some([u32::from(defense<10),u32::from(attack<15),100-defense.min(10)as u32,s.jewel_count as u32,0,0,0,0,0,0])
+    }
+    let mut seed=seed;let initial=score(&d,&mut seed).unwrap();
+    let mut refine=DecorationRefiner::new(seed,[3,0,0,0,0,0,0],|j|d.jewels[j as usize].slots,initial).unwrap();
+    let mut ticks=0;
+    let result=loop{ticks+=1;let before=refine.work_done;
+        let (s,done)=refine.tick(d.jewels.len()as u32,|j|d.jewels[j as usize].slots,|s|score(&d,s),3);
+        assert!(refine.work_done-before<=3);assert!(s.totals[0]>=10);
+        assert!(s.jewel_count<=3);assert!(s.jewels[..s.jewel_count as usize].iter().all(|p|p.gear==0));
+        if done{break s;}assert!(ticks<3000);
+    };
+    assert!(ticks>100);assert_eq!(result.jewel_count,3);
+    assert!(result.totals[0]>=15);assert!(result.totals[1]>=10);
+    assert!(!result.jewels[..3].iter().any(|p|p.jewel==80));
+}
+
+#[test]
+fn refinement_validates_each_bin_and_stops_without_useful_improvements(){
+    let seed=Solution{armor:[0;5],charm:0,jewels:[Placement::default();MAX_JEWELS],jewel_count:0,totals:[10,0,0,0,0,0]};
+    let mut refine=DecorationRefiner::new(seed,[1,1,1,0,0,0,0],|_|2,[0;10]).unwrap();
+    let(s,done)=refine.tick(1,|_|2,|_|panic!("two-slot jewel cannot fit separate one-slot bins"),20);
+    assert!(done);assert_eq!(s,seed);
+    let mut overflow=seed;overflow.jewel_count=1;overflow.jewels[0]=Placement{jewel:0,gear:0};
+    assert!(DecorationRefiner::new(overflow,[1;7],|_|2,[0;10]).is_none());
+}
+
+#[test]
+fn full_slot_first_solution_can_replace_harmful_goal_jewel(){
+ let mut d=base();d.armor[0][0].slots=1;
+ d.jewels=vec![jewel(10,-10,1),jewel(10,0,1)];
+ let mut q=query(10,0);q.goal_count=1;let mut solver=Solver::new(q);
+ let seed=loop{if let Tick::Found(s)=solver.tick(&d,1){break s;}};
+ assert_eq!(seed.jewels[0].jewel,0);
+ let mut refine=DecorationRefiner::new(seed,[1,0,0,0,0,0,0],|_|1,[1,0,0,0,0,0,0,0,0,0]).unwrap();
+ let result=loop{let (s,done)=refine.tick(2,|_|1,|s|{
+   let j=d.jewels[s.jewels[0].jewel as usize];s.totals[0]=j.points[0]as i32;
+   Some([u32::from(j.points[1]<0),0,0,0,0,0,0,0,0,0])
+ },2);if done{break s;}};
+ assert_eq!(result.jewel_count,1);assert_eq!(result.jewels[0].jewel,1);assert_eq!(result.totals[0],10);
+}
+
+#[test]
+fn decoration_refinement_yields_equipment_search_within_fixed_work_limit(){
+ let seed=Solution{armor:[0;5],charm:0,jewels:[Placement::default();MAX_JEWELS],jewel_count:0,totals:[0;6]};
+ let mut refine=DecorationRefiner::new(seed,[3;7],|_|1,[u32::MAX;10]).unwrap();
+ for frame in 0..258{
+  let(_,done)=refine.tick(256,|_|1,|s|Some([u32::MAX-u32::from(s.jewel_count),0,0,0,0,0,0,0,0,0]),32);
+  assert!(refine.work_done<=8192);
+  if done{return;}
+  assert!(frame<257,"one result must not monopolize subsequent equipment search");
+ }
+ panic!("refinement did not yield");
+}

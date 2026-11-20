@@ -120,7 +120,8 @@ with tempfile.TemporaryDirectory(prefix='compendium-set-builder-') as folder:
     assert any(re.fullmatch(r'Acrobat  (\d+) / 10', text) and int(re.fullmatch(r'Acrobat  (\d+) / 10', text)[1]) >= 10 for text in out), out
     assert out.count('Missing') == 5, out
     assert any(re.fullmatch(r'Base defense \d+   Slots: 0 used / \d+ total', text) for text in out), out
-    assert any(text.startswith('B  All skills (') for text in out), out
+    assert any('All skills (' in text for text in out), out
+    assert any(re.search(r'[+-]\d+ / \d+', text) for text in out), out
     out = press(1 << 5)
     rows = path.read_text().splitlines()
     assert len(rows) == 5 and all(row.startswith('armor:') for row in rows), rows
@@ -153,7 +154,7 @@ with tempfile.TemporaryDirectory(prefix='compendium-set-builder-') as folder:
     out = press(1 << 2)
     best_points = int(next(re.fullmatch(r'Acrobat  (\d+) / 10', text)[1]
                            for text in out if re.fullmatch(r'Acrobat  (\d+) / 10', text)))
-    assert best_points <= initial_points, (initial_points, best_points, out)
+    assert best_points >= 10, (initial_points, best_points, out)
     out = press(1 << 14)
     assert any(text.startswith('Build 2 /') for text in out), out
     out = press(1 << 12)
@@ -161,13 +162,17 @@ with tempfile.TemporaryDirectory(prefix='compendium-set-builder-') as folder:
     out = press(1)
     assert 'Crafting materials' in out, out
     out = press(2)
-    assert 'No talisman required' in out, out
+    assert 'Owned talisman' in out, out
     slot_summary = next(re.fullmatch(r'Base defense \d+   Slots: (\d+) used / (\d+) total', text)
                         for text in out if text.startswith('Base defense '))
     for _ in range(5):
         press(1 << 15)
     out = press(1)
-    assert 'Decoration placement' in out and 'No decorations required.' in out, out
+    assert 'Decoration placement' in out, out
+    if int(slot_summary[1]) == 0:
+        assert 'No decorations required.' in out, out
+    else:
+        assert 'No decorations required.' not in out, out
     placement = next(text for text in out if all(part in text for part in ('Head', 'Chest', 'Arms', 'Waist', 'Legs', 'Charm', 'Weapon')))
     per_piece = re.findall(r'(Head|Chest|Arms|Waist|Legs|Charm|Weapon) ?(\d+)/(\d+)', placement)
     assert len(per_piece) == 7, out
@@ -175,9 +180,9 @@ with tempfile.TemporaryDirectory(prefix='compendium-set-builder-') as folder:
     assert sum(int(used) for _, used, _ in per_piece) == int(slot_summary[1]), out
     assert sum(int(capacity) for _, _, capacity in per_piece) == int(slot_summary[2]), out
     for bits in (1 << 15, 1 << 14, 1 << 13, 1 << 12):
-        press(bits)  # Empty jewel list is bounded in every direction.
+        press(bits)  # Both empty and populated jewel lists stay bounded.
     out = press(2)
-    assert 'No talisman required' in out, out
+    assert 'Owned talisman' in out, out
     # The seventh result card exposes every contributing tree, including
     # unrequested inactive/negative points that the compact summary omits.
     press(1 << 15)
@@ -198,6 +203,9 @@ with tempfile.TemporaryDirectory(prefix='compendium-set-builder-') as folder:
     assert any(text.endswith(f'Page 1 / {pages}') for text in out), out
     out = press(2)
     assert any(text.startswith('Build 1 /') for text in out), out
+    out = press(1 << 4)
+    assert 'All skills' in out and 'Crafting materials' not in out, out
+    out = press(2)
     out = press(2)
     assert 'Choose activated skills' in out and '1 / 6 selected' in out, out
     out = press(2)
@@ -211,5 +219,5 @@ with tempfile.TemporaryDirectory(prefix='compendium-set-builder-') as folder:
     assert bytes(u.mem_read(fixture, 0x100000)) == fixture_before
     assert native_calls.get(0x13f03c, 0) >= 4 and native_calls.get(0x54ce08, 0) > 0, native_calls
     print('ARM Set Builder passed: town capture, 3 charms in full physical box, skill/search/pause, '
-          'missing stock, result pagination/details/back, empty jewels/slot allocation, all skill trees/activation/paging, 5 missing wishlist pieces/idempotence, '
+          'missing stock, result pagination/details/back, jewel browsing/slot allocation/L3 shortcut, all skill trees/activation/paging, 5 missing wishlist pieces/idempotence, '
           'no fixture writes; preparation frames:', frames + 1)
