@@ -3,8 +3,8 @@
 use core::{mem,ptr};
 use crate::gather;
 const NONE:u32=u32::MAX;
-#[derive(Clone,Copy)]struct Icon{id:u32,object:u32,item:u16,shown:bool}
-const EMPTY_ICON:Icon=Icon{id:NONE,object:0,item:0,shown:false};
+#[derive(Clone,Copy)]struct Icon{id:u32,object:u32,item:u16,shown:bool,position:[f32;2],positioned:bool}
+const EMPTY_ICON:Icon=Icon{id:NONE,object:0,item:0,shown:false,position:[0.;2],positioned:false};
 #[derive(Clone,Copy)]struct Map{layout:u32,parent:u32,resource:u32,icons:[Icon;gather::CAPACITY]}
 const EMPTY_MAP:Map=Map{layout:0,parent:0,resource:0,icons:[EMPTY_ICON;gather::CAPACITY]};
 static mut MAPS:[Map;3]=[EMPTY_MAP;3];
@@ -71,13 +71,13 @@ unsafe fn create(map:&mut Map,slot:usize,item:u16,ui:u32)->bool{unsafe{
   let f:unsafe extern "C" fn(u32,u32,u32,u32,u32)->u32=mem::transmute(address(0x74501c));
   let id=f(map.layout,map.resource,4,map.parent,address(0x2323290));
   let object=call2(0x744fe8,map.layout,id);if !valid(object,0xdc){return false;}
-  *icon=Icon{id,object,item:0,shown:false};
+  *icon=Icon{id,object,item:0,shown:false,position:[0.;2],positioned:false};
   let parts=read(object,0xd8);let sprite=if valid(parts,8){read(parts,4)}else{0};
   if !valid(sprite,0x108){call3(0x74533c,map.layout,id,0);icon.item=u16::MAX;return false;}
   // map_icon.gui ID2 is the common item atlas; ID3 is the stock map-marker
   // atlas and cannot be combined with cItemIconForHud's item UV coordinates.
   call4(0x746f48,map.layout,id,1,2);
-  let size=[crate::gather_layout::SIZE;2];call2(0xc4fbf4,sprite,size.as_ptr()as u32);
+  let size=[18.0f32;2];call2(0xc4fbf4,sprite,size.as_ptr()as u32);
   call3(0x746e84,map.layout,id,50);
  }
  if icon.item==u16::MAX||!owns(map.layout,map.parent,icon){return false;}
@@ -119,14 +119,11 @@ unsafe fn create(map:&mut Map,slot:usize,item:u16,ui:u32)->bool{unsafe{
    }
   }
  }
- let labels=if read(table,0x6c)==address(0x81bde8){crate::context::stage().and_then(|s|crate::map_labels::BOUNDS.get(s as usize)).copied().unwrap_or(&[])}else{&[]};
- // Only fixed map labels reserve space; moving actors never displace a spot.
- crate::gather_layout::spread(&mut positions[..count],labels);
  let mut shown=[false;gather::CAPACITY];
  for i in 0..count{let slot=slots[i];if create(map,slot,items[i],ui){
   // Native item quads use a top-left origin; the layout works in centres.
-  let half=crate::gather_layout::SIZE/2.;let position=[positions[i][0]-half,positions[i][1]-half];
-  let icon=&mut map.icons[slot];call3(0x745b78,layout,icon.id,position.as_ptr()as u32);
+  let half=18.0f32/2.;let position=[positions[i][0]-half,positions[i][1]-half];
+  let icon=&mut map.icons[slot];if !icon.positioned||icon.position!=position{call3(0x745b78,layout,icon.id,position.as_ptr()as u32);icon.position=position;icon.positioned=true;}
   if !icon.shown{call3(0x74533c,layout,icon.id,1);icon.shown=true;}shown[slot]=true;
  }}
  for slot in 0..gather::CAPACITY{if !shown[slot]{hide_icon(layout,map.parent,&mut map.icons[slot]);}}

@@ -110,18 +110,20 @@ assert items==[(1000,271),(1001,57)],items
 assert set(accepted)=={1,7},'whole-map gathering incorrectly filters the current area'
 assert positions[:2]==[(LAYOUT,1000,(105.,61.)),(LAYOUT,1001,(700.,364.))],positions
 assert originals==[UI,UI,UI],'native update did not execute before overlay'
-update();assert len(created)==2 and len(items)==2,'second frame reallocated sprites'
+before=len(positions);update();assert len(created)==2 and len(items)==2,'second frame reallocated sprites'
+assert len(positions)==before,'unchanged frame resent native positions'
+for _ in range(120):update()
+assert len(positions)==before,'static markers resent positions during 120 unchanged frames'
 # A respawned mining point may switch type in the same slot. Repaint with the
 # native gold/grey pickaxe entry without allocating or changing its loot filter.
 put(POOL+0x80+0x68,10);update()
 assert len(created)==2 and items[-1]==(1001,59),'gold mining point retained grey pickaxe'
 put(POOL+0x80+0x68,9);update()
 assert len(created)==2 and items[-1]==(1001,57),'normal mining point retained gold pickaxe'
-# Two different spot types at the same projected position must BOTH remain
-# visible. The first stays anchored; only the overlapping icon moves aside.
+# Crowded points retain their exact native projection, including overlaps.
 u.mem_write(POOL+0x80+4,struct.pack('<3f',10.,20.,30.));u.mem_write(POOL+0x80+0x55,b'\1');update()
-placed=[p[2]for p in positions[-2:]]
-assert placed[0]==(105.,61.) and (abs(placed[0][0]-placed[1][0])>=16 or abs(placed[0][1]-placed[1][1])>=16),placed
+latest={p[1]:p[2]for p in positions};placed=[latest[1000],latest[1001]]
+assert placed==[(105.,61.),(105.,61.)],placed
 assert len(created)==2,'spreading recreated/merged a native point'
 u.mem_write(POOL+0x80+4,struct.pack('<3f',-40.,50.,60.));u.mem_write(POOL+0x80+0x55,b'\7');update()
 assert positions[-1][2]==(700.,364.),'an uncrowded marker did not return to its true position'

@@ -24,12 +24,12 @@ node(0,9,[(80,1,318),(10,1,324),(10,2,324)])
 node(1,9,[(60,1,318),(40,1,324)])
 node(2,11,[(100,1,271)])
 p.frame();texts=n['texts']
-for label in ['Compendium','Mining','Iron Ore','Lightcrystal','Honey','0 / 3 selected','60% to 80%','20% to 40%']:
+for label in ['MHGU Utility','Mining','Iron Ore','Lightcrystal','Honey','0 / 3 selected','60% to 80%','20% to 40%']:
  assert label in texts,(label,texts)
 def press(bits):p.frame({'kind':'button','bits':bits})
 press(1);assert '2 / 3 selected' in n['texts'],'category must select all of its items'
 press(1<<15);press(1);assert '1 / 3 selected' in n['texts'],'individual checkbox must remain independent'
-press(2);assert 'Compendium' not in n['texts'],'back must close the checklist'
+press(2);assert 'MHGU Utility' not in n['texts'],'back must close the checklist'
 p.frame({'kind':'key','key':63});assert '1 / 3 selected' in n['texts'],'reopening lost selection'
 # A mouse/touch click uses the same category/item actions as the controller.
 op=next(o for o in n['drawops'] if o[0]=='text' and o[2][1]=='All gathering')
@@ -44,5 +44,5 @@ press(1);assert '1 / 3 selected' in n['texts']
 u.mem_write(POOL+128+0x4e,b'\0\0')
 for _ in range(65):p.frame()
 assert '1 / 3 selected' in n['texts'] and 'Lightcrystal' in n['texts']
-p.frame({'kind':'key','key':41});assert 'Compendium' not in n['texts']
+p.frame({'kind':'key','key':41});assert 'MHGU Utility' not in n['texts']
 print('PASS: native table odds/ranges, category and item toggles, controller close/reopen, depletion, keyboard Escape')

@@ -266,3 +266,12 @@ positions no longer affect gathering layout; fixed map labels still reserve
 space. The compiled ARM regression moves a visible stock marker onto, across
 and away from a gathering point and verifies unchanged gathering coordinates,
 with no writes to the stock marker. This replaces the earlier actor avoidance.
+
+### Gathering and wishlist CPU work (20 November 2026)
+
+Removed all crowding/label avoidance: every gathering icon uses its native
+projected point and can overlap other icons. Unchanged positions no longer call
+the native setter every frame. Filtering, projection, depletion and ownership
+checks remain live. The passive wishlist caches the static gathering-source
+zone masks per quest map/rank instead of scanning the full table for each
+material every frame. Inventory quantities retain their existing refresh rate.

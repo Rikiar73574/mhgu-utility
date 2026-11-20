@@ -10,4 +10,3 @@ fn quest()->Option<(u32,u32)>{
 }
 pub fn identity()->Option<(u32,usize,u8)>{let(id,_)=quest()?;crate::world::QUESTS.binary_search_by_key(&id,|q|q.0).ok().map(|i|{let q=crate::world::QUESTS[i];(id,q.1 as usize,q.2)})}
 pub fn location()->Option<(usize,u8)>{identity().map(|(_,loc,rank)|(loc,rank))}
-pub fn stage()->Option<u8>{let(_,data)=quest()?;Some(unsafe{core::ptr::read_volatile((data+0x10)as *const u8)})}

@@ -305,9 +305,8 @@ pub(super) fn wish_tracker(loc:usize,rank:u8){
  for wish in super::wishlist::entries(){for item in super::wishlist::recipe(wish.node,wish.recipe).unwrap().items.iter(){
   if item.points||item.entry==65535||seen[..count].contains(&item.entry){continue;}
   if count==seen.len(){continue;}seen[count]=item.entry;count+=1;
-  let mut zones=[false;32];
-  for r in world::GATHER{if !r.supply&&r.loc as usize==loc&&r.rank==rank&&r.entry==item.entry{if let Some(z)=zones.get_mut(r.zone as usize){*z=true;}}}
-  if !zones.iter().any(|z|*z){continue;}
+  let zones=super::gather_zones::zones(item.entry,loc,rank);
+  if zones==0{continue;}
   let Some(stock)=super::inventory::owned(item.entry)else{continue;};
   let remaining=super::wishlist::required(item.entry).saturating_sub(stock.total());if remaining==0{continue;}
   let uses=super::wishlist::entries().iter().filter(|w|super::wishlist::recipe(w.node,w.recipe).unwrap().items.iter().any(|m|!m.points&&m.entry==item.entry)).count();
@@ -317,7 +316,7 @@ pub(super) fn wish_tracker(loc:usize,rank:u8){
   let mut line=Text::new();let _=write!(line,"{}  ×{}",item.name,remaining);
   c.text(x+9.0,y+6.0,line.str(),0xffffffff,15.0);
   let mut areas=Text::new();let _=write!(areas,"Zones: ");let mut first=true;
-  for (z,&present) in zones.iter().enumerate(){if present{if !first{let _=write!(areas,", ");}first=false;let name=world::ZONES[z];let _=write!(areas,"{}",name.strip_prefix("Area ").unwrap_or(name));}}
+  for z in 0..world::ZONES.len().min(32){if zones&(1u32<<z)!=0{if !first{let _=write!(areas,", ");}first=false;let name=world::ZONES[z];let _=write!(areas,"{}",name.strip_prefix("Area ").unwrap_or(name));}}
   c.text(x+9.0,y+25.0,areas.str(),0xff9ee8ff,13.0);
   let mut wy=y+43.0;
   for w in super::wishlist::entries(){if super::wishlist::recipe(w.node,w.recipe).unwrap().items.iter().any(|m|!m.points&&m.entry==item.entry){
