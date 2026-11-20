@@ -45,16 +45,14 @@ the preview; equipped armor and stats stay unchanged.
 - **Standalone operation:** no HuntLog backend, browser or external service is
   required during gameplay. Wishlist and settings persist in separate files.
 
-### Set Builder preview
+### Set Builder
 
-The [Set Builder branch](https://github.com/Rikiar73574/mhgu-utility/tree/feat/set-builder)
-adds skill-based armor searches, automatic character settings, every owned charm,
+Set Builder provides skill-based armor searches, automatic character settings, every owned charm,
 per-piece decoration placements, and an action to wishlist missing armor.
 Missing crafting stock does not exclude armor. Verified availability is preferred;
 unconfirmed unlocks remain explicitly labelled. Searches keep improving a pool of up to 24 best-found builds; a bounded work
 budget pauses the search, and Y resumes. Bonus skills, penalties, slot usage
 and per-piece gem placement are shown. Mixed-set model previews are not included yet.
-**This preview is not included in the latest published release.**
 
 | Select desired skills | Suggested build |
 | --- | --- |
