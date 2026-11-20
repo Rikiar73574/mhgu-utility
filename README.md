@@ -55,6 +55,10 @@ unconfirmed unlocks remain explicitly labelled. Searches can be paused and stop
 after 24 distinct results. Mixed-set model previews are not included yet.
 **This preview is not included in the latest published release.**
 
+| Select desired skills | Suggested build |
+| --- | --- |
+| ![Set Builder preview skill selection](docs/screenshots/current/set-builder-skills.webp) | ![Set Builder preview showing armor, an owned charm and the wishlist action](docs/screenshots/current/set-builder-results.webp) |
+
 ## Controls and details
 
 Item sources include all monster drops and quest rewards available in the local
@@ -130,9 +134,22 @@ renderer and generation paths are retained; supplying the same local generated
 modules preserves the existing full UI. No HuntLog plugin or backend is needed
 at runtime or to compile this standalone tree.
 
-| Items | Weapon tree | Passive quest tracker |
-| --- | --- | --- |
-| ![Item browser](docs/screenshots/items.png) | ![Weapon upgrade tree](docs/screenshots/weapon-tree.png) | ![Passive material tracker](docs/screenshots/quest-tracker.png) |
+## Screenshots
+
+Actual in-game captures from 20 November 2026. Click an image for full size.
+[Full gallery and capture details](docs/SCREENSHOTS.md).
+
+| Item browser | Weapon tree |
+| --- | --- |
+| ![Current item browser with game-style frames](docs/screenshots/current/items.webp) | ![Connected Lance upgrade tree](docs/screenshots/current/weapon-tree.webp) |
+
+| Material sources | Wishlist and live stock |
+| --- | --- |
+| ![Item sources grouped by map with rank and drop rates](docs/screenshots/current/item-sources.webp) | ![Armor wishlist showing owned, needed and total materials](docs/screenshots/current/wishlist.webp) |
+
+| Location browser | In-quest gathering filters |
+| --- | --- |
+| ![Locations with map previews and a shared rank selector](docs/screenshots/current/locations.webp) | ![Mining checklist with item selection and gathering chances](docs/screenshots/current/gathering-filters.webp) |
 
 ## Naming acknowledgement
 
