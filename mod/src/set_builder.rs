@@ -71,15 +71,15 @@ pub fn tick(){let s=mutable();if !s.show_results{return;}if !crate::set_unlock::
   let before=bonus.work_done;
   let (found,done)=bonus.tick(s.jewel_count as u32,|j|data::DECO[(s.jewel_ids[j as usize]&0x7fff)as usize].slots,|candidate|bonus_score(s,candidate),32);
   s.visited+=bonus.work_done-before;
-  let score=rank(s,&found);retain(s,found,score);
-  if !done{s.bonus=Some(bonus);}
+  if done{let score=rank(s,&found);retain(s,found,score);s.status="Searching other armor and charm combinations...";}
+  else{s.bonus=Some(bonus);}
   if s.visited>=s.pause_at{s.phase=Phase::Paused;s.status="Search budget reached. Best builds so far; Y continues.";}return;
  }
  let Some(mut engine)=s.solver.take()else{return;};let before=engine.work_done;let result=engine.tick(&Catalog(s),256);s.visited+=engine.work_done-before;s.solver=Some(engine);
  match result{solver::Tick::Working=>{},solver::Tick::Found(found)=>{
   let mut found=found;
   if let Some(score)=bonus_score(s,&mut found){
-   let ranked=rank(s,&found);retain(s,found,ranked);
+   s.status="Refining decorations for this build...";
    let (capacity,_)=slots_for(s,&found);
    s.bonus=solver::DecorationRefiner::new(found,capacity,|j|data::DECO[(s.jewel_ids[j as usize]&0x7fff)as usize].slots,score);
    if let Some(engine)=s.solver.as_mut(){engine.next_equipment();}
@@ -127,9 +127,11 @@ fn evaluate(s:&State,r:&solver::Solution)->skills::Totals{
 fn slots_for(s:&State,r:&solver::Solution)->([u8;7],[u8;7]){let mut capacity=[0;7];let mut used=[0;7];for slot in 0..5{capacity[slot]=armor::ARMOR[id(s,r,slot)].slots;}if r.charm>0{capacity[5]=player::snapshot().charms[r.charm as usize-1].slots;}capacity[6]=player::snapshot().weapon_slots.unwrap_or(0);for p in &r.jewels[..r.jewel_count as usize]{used[p.gear as usize]+=data::DECO[(s.jewel_ids[p.jewel as usize]&0x7fff)as usize].slots;}(capacity,used)}
 pub fn slots()->([u8;7],[u8;7]){let s=state();s.results.get(s.result).filter(|_|s.result<s.count).and_then(|r|r.as_ref()).map(|r|slots_for(s,r)).unwrap_or(([0;7],[0;7]))}
 fn rank(s:&State,r:&solver::Solution)->[u32;9]{rank_with_totals(s,r,&evaluate(s,r))}
+// Prefer stronger skills, then verified availability. Unknown source coverage
+// must not veto every jewel; those builds keep the explicit unverified label.
 fn rank_with_totals(s:&State,r:&solver::Solution,all:&skills::Totals)->[u32;9]{let mut unknown=0;let mut missing=0;let mut defense=0;for slot in 0..5{unknown+=u32::from(s.armor_ids[slot][r.armor[slot]as usize]&0x8000!=0);missing+=u32::from(!owns_in(s,id(s,r,slot)));defense+=u32::from(armor::ARMOR[id(s,r,slot)].defense);}for p in &r.jewels[..r.jewel_count as usize]{unknown+=u32::from(s.jewel_ids[p.jewel as usize]&0x8000!=0);}
  let (negative,active,tiers,_,_,excess)=quality(all);
- let(c,u)=slots_for(s,r);let total=c.iter().map(|&v|u32::from(v)).sum::<u32>();let used=u.iter().map(|&v|u32::from(v)).sum::<u32>();[unknown,negative,u32::MAX-active,u32::MAX-tiers,excess,used,21-(total-used),missing,65535-defense]
+ let(c,u)=slots_for(s,r);let total=c.iter().map(|&v|u32::from(v)).sum::<u32>();let used=u.iter().map(|&v|u32::from(v)).sum::<u32>();[negative,u32::MAX-active,u32::MAX-tiers,unknown,excess,used,21-(total-used),missing,65535-defense]
 }
 /// Count only the strongest activation per tree; intermediate points guide the
 /// bounded spare-slot search but never outrank an actual active skill.
@@ -149,7 +151,7 @@ fn bonus_score(s:&State,r:&mut solver::Solution)->Option<[u32;10]>{
  let all=evaluate(s,r);
  for i in 0..s.goal_count{let a=&data::ACTIVATIONS[s.goals[i]];let p=all.points[a.tree as usize];if a.points>0&&p<i16::from(a.points)||a.points<0&&p>i16::from(a.points){return None;}r.totals[i]=i32::from(p);}
  let (negative,active,tiers,near,sum,excess)=quality(&all);let ranked=rank_with_totals(s,r,&all);
- Some([ranked[0],negative,u32::MAX-active,u32::MAX-tiers,u32::MAX-near,u32::MAX-sum,excess,ranked[5],ranked[6],ranked[8]])
+ Some([negative,u32::MAX-active,u32::MAX-tiers,u32::MAX-near,u32::MAX-sum,ranked[3],excess,ranked[5],ranked[6],ranked[8]])
 }
 
 fn retain(s:&mut State,r:solver::Solution,score:[u32;9]){

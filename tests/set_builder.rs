@@ -8,15 +8,16 @@ fn enter(_: &mut Ui,_:usize){}
 mod input{pub fn close(){}}
 mod catalog{pub const ENTRIES:[u8;0]=[];}
 mod wishlist{pub const ARMOR_BASE:usize=0;pub fn contains(_:usize,_:usize)->bool{false}pub fn toggle(_:usize,_:usize){}pub fn failed()->bool{false}}
-mod set_unlock{pub fn begin()->bool{true}pub fn ready()->bool{true}pub fn tick()->bool{true}pub fn armor(_:u8,_:u16)->Option<bool>{Some(true)}pub fn decoration(_:u16)->Option<bool>{Some(true)}}
+mod set_unlock{pub static UNKNOWN:std::sync::atomic::AtomicBool=std::sync::atomic::AtomicBool::new(false);pub fn begin()->bool{true}pub fn ready()->bool{true}pub fn tick()->bool{true}pub fn armor(_:u8,_:u16)->Option<bool>{Some(true)}pub fn decoration(_:u16)->Option<bool>{if UNKNOWN.load(std::sync::atomic::Ordering::Relaxed){None}else{Some(true)}}}
 mod armor_data{
  pub struct Armor{pub native:u16,pub slot:u8,pub hunter:u8,pub gender:u8,pub slots:u8,pub skill:u16,pub skill_count:u8,pub defense:u16}
- pub static ARMOR:[Armor;5]=[Armor{native:0,slot:0,hunter:2,gender:2,slots:3,skill:0,skill_count:2,defense:10},
+ pub static ARMOR:[Armor;6]=[Armor{native:0,slot:0,hunter:2,gender:2,slots:3,skill:0,skill_count:2,defense:10},
 Armor{native:1,slot:1,hunter:2,gender:2,slots:0,skill:0,skill_count:0,defense:10},
 Armor{native:2,slot:2,hunter:2,gender:2,slots:0,skill:0,skill_count:0,defense:10},
 Armor{native:3,slot:3,hunter:2,gender:2,slots:0,skill:0,skill_count:0,defense:10},
-Armor{native:4,slot:4,hunter:2,gender:2,slots:0,skill:0,skill_count:0,defense:10}];
- pub const SKILLS:[(u8,i8);2]=[(0,10),(1,6)];
+Armor{native:4,slot:4,hunter:2,gender:2,slots:0,skill:0,skill_count:0,defense:10},
+Armor{native:5,slot:0,hunter:2,gender:2,slots:3,skill:2,skill_count:2,defense:10}];
+ pub const SKILLS:[(u8,i8);4]=[(0,10),(1,6),(0,20),(1,6)];
 }
 mod set_data{
  pub const SKILL_PLUS:u8=204;pub const TALISMAN_BOOST:u8=205;pub const TORSO_UP:u8=203;
@@ -45,6 +46,10 @@ mod set_player{
 #[test]
 fn production_adapter_fills_spare_slots_keeps_goals_charms_and_exposes_l3(){
  let mut ui=Ui::default();set_builder::open(&mut ui);set_builder::toggle(0);set_builder::start();
+ // Do not expose an undecorated result that browsing would freeze mid-refinement.
+ for _ in 0..1000{set_builder::tick();if set_builder::state().status=="Refining decorations for this build..."{break;}}
+ assert_eq!(set_builder::state().status,"Refining decorations for this build...");
+ assert_eq!(set_builder::state().count,0);
  for _ in 0..20_000{set_builder::tick();if matches!(set_builder::state().phase,set_builder::Phase::Complete){break;}}
  let s=set_builder::state();assert!(matches!(s.phase,set_builder::Phase::Complete));assert!(s.count>=3);
  // This checks actual adapter quality, native evaluation and result retention.
@@ -61,4 +66,23 @@ fn production_adapter_fills_spare_slots_keeps_goals_charms_and_exposes_l3(){
  assert!(set_builder::state().count>0);
  for result in 0..set_builder::state().count{set_builder::select_result(result);set_builder::refresh_summary();let s=set_builder::state();assert!(s.totals.points[1]>=10&&s.totals.points[2]>=10);}
  set_builder::select_result(0);set_builder::input(&mut ui,1<<4);assert!(set_builder::state().skills);
+ // A requested Attack L is already intrinsic on head candidate 1. Decorations
+ // must still activate Defense using its spare slots, without weakening Attack.
+ set_builder::toggle(3);set_builder::toggle(2);set_builder::start();
+ for _ in 0..20_000{set_builder::tick();if matches!(set_builder::state().phase,set_builder::Phase::Complete){break;}}
+ let mut intrinsic=false;
+ for result in 0..set_builder::state().count{
+  set_builder::select_result(result);set_builder::refresh_summary();let s=set_builder::state();let r=s.results[s.result].unwrap();
+  if r.armor[0]==1 {intrinsic=true;assert!(s.totals.points[1]>=20);assert!(s.totals.points[2]>=10,"spare jewels must activate another skill");assert!(r.jewel_count>0);}
+ }
+ assert!(intrinsic,"intrinsic Attack L fixture must be searched");
+ // Missing source proof is labelled unknown, not locked. A stronger marked
+ // result must remain eligible instead of silently keeping every socket empty.
+ set_unlock::UNKNOWN.store(true,std::sync::atomic::Ordering::Relaxed);set_builder::start();
+ for _ in 0..20_000{set_builder::tick();if matches!(set_builder::state().phase,set_builder::Phase::Complete){break;}}
+ let i=(0..set_builder::state().count).find(|&i|{let r=set_builder::state().results[i].unwrap();r.armor[0]==1&&r.charm==0}).unwrap();
+ set_builder::select_result(i);set_builder::refresh_summary();
+ let s=set_builder::state();assert!(s.totals.points[1]>=20);
+ assert!(s.totals.points[2]>=10,"unknown-source jewels must still be tried and labelled");
+ assert!(set_builder::unverified());
 }

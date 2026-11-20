@@ -106,10 +106,12 @@ with tempfile.TemporaryDirectory(prefix='compendium-set-builder-') as folder:
     out = press(1 << 2)  # Pause during preparation and resume.
     assert 'Y  Search / resume' in out, out
     out = press(1 << 2)
+    refining = False
     for frames in range(2500):
         out = render()
         if any(text.startswith('Build 1 /') for text in out):
             break
+        refining |= "Refining decorations for this build..." in out
         assert not any('capacity exceeded' in text.lower() or 'snapshot or search data is invalid' in text for text in out), out
     else:
         raise AssertionError(('No result before frame budget', out))
@@ -119,7 +121,9 @@ with tempfile.TemporaryDirectory(prefix='compendium-set-builder-') as folder:
     assert 'No talisman required' in out, out
     assert any(re.fullmatch(r'Acrobat  (\d+) / 10', text) and int(re.fullmatch(r'Acrobat  (\d+) / 10', text)[1]) >= 10 for text in out), out
     assert out.count('Missing') == 5, out
-    assert any(re.fullmatch(r'Base defense \d+   Slots: 0 used / \d+ total', text) for text in out), out
+    assert refining, 'first result was exposed before its decoration pass'
+    slots = next(re.fullmatch(r'Base defense \d+   Slots: (\d+) used / (\d+) total', text) for text in out if text.startswith('Base defense '))
+    assert 0 < int(slots[1]) <= int(slots[2]), out
     assert any('All skills (' in text for text in out), out
     assert any(re.search(r'[+-]\d+ / \d+', text) for text in out), out
     out = press(1 << 5)
