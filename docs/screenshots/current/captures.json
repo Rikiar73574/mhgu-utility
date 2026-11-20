@@ -1,0 +1,103 @@
+{
+  "captured": "2026-11-20",
+  "platform": "Windows executable under Wine on Linux, headless Gamescope",
+  "encoding": "Lossless WebP; decoded RGB pixels verified identical to native PNG capture",
+  "preview_features": [
+    "Set Builder"
+  ],
+  "images": [
+    {
+      "file": "items-categories.webp",
+      "sha256": "b67bcab5dbbf7f7cc3641bd6dc7e0268b32897f95c349062696d8308ff0642c4",
+      "width": 2560,
+      "height": 1440,
+      "source_png_sha256": "14fad1c006533bd458301da9021af8db8cf7f3535e0cb5ae4a41c19072a427c0"
+    },
+    {
+      "file": "items.webp",
+      "sha256": "dfa50bef32ebbd5c3541f31c672036066665e275f650be461b911e0478eb6e8b",
+      "width": 2560,
+      "height": 1440,
+      "source_png_sha256": "5d36b04b6814e6715566bc6ae6c315b3ff903d78a51351c7d3c2f5d02c9902ae"
+    },
+    {
+      "file": "weapon-tree.webp",
+      "sha256": "dc6138c8c98e6ca5f82963c3412a10038ac14bf3b124054d0f46f43753bf9942",
+      "width": 2560,
+      "height": 1440,
+      "source_png_sha256": "77a2c73d8d96754d8908f49d29588afaac0794a7f7a88db39870ef425b4a4324"
+    },
+    {
+      "file": "weapon-details.webp",
+      "sha256": "ad4732c57077c00387744c12cf8da7de7efc5fce13203d286c649d92aac9008f",
+      "width": 2560,
+      "height": 1440,
+      "source_png_sha256": "bac39a5230b0a69a1408c614a92b49157a75708679c71e9ec2b61d3a1755cfe6"
+    },
+    {
+      "file": "item-sources.webp",
+      "sha256": "0813338ad9aef9c2d273fa09302a62e5eb48d6b22d5dbb6dc7887bed0186e262",
+      "width": 2560,
+      "height": 1440,
+      "source_png_sha256": "cef4030040cdfd6cfa41bff6ad6d423fa726e881581427ffcd12d60d013c342c"
+    },
+    {
+      "file": "locations.webp",
+      "sha256": "1c495e5d6e0c10e81ff73db0d0ccc1d7ce2ba3263d9d714b725735dcf08e5f21",
+      "width": 2560,
+      "height": 1440,
+      "source_png_sha256": "8cb8bd05486c50b060dc27392aa524ae09c7eeeb9519ecf1087074e9c4698791"
+    },
+    {
+      "file": "area-gathering.webp",
+      "sha256": "3852eddc5f441fe3bec141d4a5345257a98f370a1d7e8ea8fe46d0494e2b2241",
+      "width": 2560,
+      "height": 1440,
+      "source_png_sha256": "72b75e9f8549b704c434ec90cca4affa3a8d8731dbbd476df2fd5013ea541bc8"
+    },
+    {
+      "file": "wishlist.webp",
+      "sha256": "0c515b7d942302f5cef7135b8e7dc21a45e08d3b4d537caa694856f102243760",
+      "width": 2560,
+      "height": 1440,
+      "source_png_sha256": "b5c5bb365dfccc97f3e7a2f131a96b5a5574b6267e7eebeca5a228c29d18042f"
+    },
+    {
+      "file": "quest-planner.webp",
+      "sha256": "c8a229f9006a1c27ad19b28ff205472da545c51d095496503201507216b1bcec",
+      "width": 2560,
+      "height": 1440,
+      "source_png_sha256": "d973cc8f95294316580df632a410bcf074a54fdbc59d77a66aff4b7ad90a906f"
+    },
+    {
+      "file": "set-builder-skills.webp",
+      "sha256": "1d1e6a224879d80638081620887328743e5849daf81bbda863e73488f5205a0e",
+      "width": 1216,
+      "height": 760,
+      "source_png_sha256": "bc519ed88448b04d7ac9ca39f94f69a4f4f979f72be9632c84955f5ec750a06f"
+    },
+    {
+      "file": "set-builder-results.webp",
+      "sha256": "d1193393e47f279fe218a8d6ed29ea5f2f63206fe0a3718fba33c443b443f5b1",
+      "width": 1216,
+      "height": 760,
+      "source_png_sha256": "80bf3e63209808f3805e332f9b0f30029ca9cd8d2c42fac7cc0148be4c819b26"
+    },
+    {
+      "file": "gathering-filters.webp",
+      "sha256": "0feb4421cbe5955e4ad45c30cfbe6edc34f32beeecd67d2ea1fa1ecc229d116c",
+      "width": 2560,
+      "height": 1440,
+      "source_png_sha256": "23e09e789fc18102248bc3ef8c202f34342db2d01ac87ad6609b77e3741c7392"
+    },
+    {
+      "file": "gathering-map.webp",
+      "sha256": "78a96c2b7031977b7b251c4ebf71283ea8734912ddee035d6aa8719cd2c47b13",
+      "width": 2560,
+      "height": 1440,
+      "source_png_sha256": "3e8e90e678e03ff99442de2ce3c83fa1629a73aceb1eed4f39c6eceab4930f0b"
+    }
+  ],
+  "source_branch": "feat/set-builder",
+  "note": "Captured from development builds on 20 November. Set Builder is a preview, not a published-release feature."
+}
