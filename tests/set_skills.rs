@@ -175,3 +175,34 @@ fn fixed_ranking_puts_more_activated_skills_before_other_preferences(){
     assert!(skill_rank(3,0,30)<skill_rank(3,1,45),"equal skill counts prefer fewer penalties");
     assert!(skill_rank(3,0,45)<skill_rank(3,0,30),"equal counts and penalties prefer stronger tiers");
 }
+
+#[test]
+fn search_stops_after_five_skill_variations_not_five_loadouts() {
+    let mut search = SearchBudget::new();
+    let mut signature = [0; TREE_COUNT]; signature[18] = 20;
+    assert_eq!(search.poll(100.0), None);
+    for _ in 0..30 { search.observe(signature); }
+    assert_eq!(search.variations, 1);
+    assert_eq!(search.poll(159.999), None);
+    assert_eq!(search.poll(160.0), Some(SearchStop::Time));
+    search = SearchBudget::new();
+    search.poll(5.0);
+    search.observe(signature);
+    for tree in [85, 89, 34] { let mut s = signature; s[tree] = 10; search.observe(s); }
+    assert_eq!(search.variations, 4);
+    assert_eq!(search.poll(6.0), None);
+    let mut s = signature; s[19] = 10; search.observe(s);
+    assert_eq!(search.poll(6.0), Some(SearchStop::Variations));
+}
+
+#[test]
+fn active_skill_signature_ignores_raw_points_and_negative_penalties() {
+    let activations = [(18, 10), (18, 15), (18, 20), (85, 10), (85, 15), (19, -10)];
+    let mut points = [0; TREE_COUNT]; points[18] = 21; points[85] = 9; points[19] = -11;
+    let first = skill_signature(&points, activations.into_iter());
+    assert_eq!(first[18], 20); assert_eq!(first[85], 0); assert_eq!(first[19], 0);
+    points[18] = 25; points[85] = 5;
+    assert_eq!(first, skill_signature(&points, activations.into_iter()));
+    points[85] = 10;
+    assert_ne!(first, skill_signature(&points, activations.into_iter()));
+}

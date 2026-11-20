@@ -10,6 +10,7 @@ import sqlite3
 import struct
 from pathlib import Path
 from game_names import strings
+from skill_effects import descriptions, pack
 from paths import DATA, GENERATED, database
 
 THRESHOLDS = (-20, -15, -10, 10, 15, 20, 25)
@@ -181,7 +182,14 @@ def emit(db, catalog, game_dir):
             'pub static ARMOR_RECIPES:&[ArmorRecipe]=&[']
     for native,g,index,m,count,slot,category,quantity in armor:
         out.append(f'ArmorRecipe{{native:{list(native)},gate:{g},index:{index},material:{m},material_count:{count},slot:{slot},point_category:{category},point_count:{quantity}}},')
-    out += ['];']
+    rows = strings(game_dir / 'romfs/nativeNX/eng/table/skillData_eng.gmd')
+    native = {rows[i]: ' '.join(rows[i+1].split()) for i in range(0,len(rows),2) if rows[i] and rows[i+1].strip()}
+    effects = descriptions(native)
+    blob,pairs,offsets = pack([effects[name][1] for _,_,name in active])
+    out += ['];', '// Reviewed full effects, byte-pair packed to preserve the shared plugin budget.',
+            'pub static EFFECTS:&[(u32,u16)]=&['+','.join(str(p).replace(' ','')for p in offsets)+'];',
+            'pub static EFFECT_PAIRS:&[(u8,u8);256]=&['+','.join(str(p).replace(' ','')for p in pairs)+'];',
+            'pub static EFFECT_TEXT:&[u8]=&['+','.join(map(str,blob))+'];']
     return '\n'.join(out) + '\n'
 
 

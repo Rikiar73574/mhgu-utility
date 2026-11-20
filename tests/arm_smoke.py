@@ -36,6 +36,7 @@ with (ROOT/'mod/target/armv7a-none-eabi/release/libhunters_compendium.so').open(
    elif typ in [21,22]:value=symbols[dyn.get_symbol(r['r_info_sym']).name]
    else:raise AssertionError(typ)
    put(at,value)
+gui_time=0.0
 slots=[]
 for off,typ,idx,add in n.relocs:
  if 'GetNpadState' in n.syms[idx][0]:
@@ -59,6 +60,8 @@ def callback(uc,at,size,ctx):
  elif name=='forge_input_getTouch':
   if touch is not None:
    uc.mem_write(r0,struct.pack('<f',touch[0]));uc.mem_write(r1,struct.pack('<f',touch[1]));out=1
+ elif name=='igGetTime':
+  out,hi=struct.unpack('<II',struct.pack('<d',gui_time));uc.reg_write(UC_ARM_REG_R1,hi)
  elif name=='igGetIO_Nil':out=IO
  elif name in ['igGetForegroundDrawList_Nil','igGetFont']:out=HEAP+0x2000
  elif name=='forge_hook_create':

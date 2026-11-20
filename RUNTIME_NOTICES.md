@@ -21,6 +21,9 @@ artwork, game tables, an NSO, saves or the local generation inputs.
   `licenses/location-art-sources.json` and `licenses/location-art-provenance.txt`.
   Original minimap provenance is in `licenses/location-maps-provenance.txt`.
   No separate redistribution grant for those game graphics is asserted.
+- Numerical skill explanations are independently authored from reviewed mechanics
+  and native compound-skill identities. Reference links and explicit uncertainty
+  notes are retained in `tools/skill_effects.py` in the source repository.
 - Forge-RS code/linker support: MIT, Fexty (2026),
   `licenses/Forge-RS-MIT.txt`.
 - Generic wishlist storage adapted from HuntLog: MIT, sadgnk169 (2026),

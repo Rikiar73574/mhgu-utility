@@ -86,4 +86,31 @@ fn production_adapter_fills_spare_slots_keeps_goals_charms_and_exposes_l3(){
  let s=set_builder::state();assert!(s.totals.points[1]>=20);
  assert!(s.totals.points[2]>=10,"unknown-source jewels must still be tried and labelled");
  assert!(set_builder::unverified());
+ // The adapter uses elapsed time, never an arbitrary DFS step count.
+ set_builder::start();
+ for _ in 0..100 {set_builder::tick_at(100.0);if set_builder::state().phase==set_builder::Phase::Searching{break;}}
+ set_builder::tick_at(100.0);
+ assert!(set_builder::state().phase==set_builder::Phase::Searching);
+ set_builder::tick_at(160.0);
+ assert!(set_builder::state().phase==set_builder::Phase::Paused);
+ assert_eq!(set_builder::state().search.elapsed,60.0);
+ assert!(set_builder::state().status.starts_with("60-second search finished"));
+ let mut visited=set_builder::state().visited;set_builder::tick_at(200.0);assert_eq!(set_builder::state().visited,visited);
+ // An explicit resume gives the user a fresh bounded search window.
+ set_builder::run_toggle();set_builder::tick_at(200.0);visited=set_builder::state().visited;
+ assert_eq!(set_builder::state().search.elapsed,0.0);
+ set_builder::tick_at(260.0);assert!(set_builder::state().phase==set_builder::Phase::Paused);assert_eq!(set_builder::state().visited,visited);
+
+ // Help preserves caller context and clamps scrolling, including invalid IDs.
+ set_builder::show_skills();set_builder::show_effect(2);
+ assert_eq!(set_builder::state().effect,Some(2));
+ set_builder::effect_lines(40);let mut ui=Ui::default();
+ set_builder::input(&mut ui,1<<14);assert_eq!(set_builder::state().effect_line,16);
+ set_builder::page(&mut ui,true);assert_eq!(set_builder::state().effect_line,24);
+ set_builder::input(&mut ui,1<<15);assert_eq!(set_builder::state().effect_line,24);
+ set_builder::effect_lines(1);assert_eq!(set_builder::state().effect_line,0);
+ set_builder::back(&mut ui);assert_eq!(set_builder::state().effect,None);assert!(set_builder::state().skills);
+ set_builder::show_effect(usize::MAX);assert_eq!(set_builder::state().effect,None);
+ set_builder::back(&mut ui);assert!(!set_builder::state().skills);
+
 }

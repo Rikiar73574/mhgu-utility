@@ -96,3 +96,24 @@ pub fn tier_score(points:i16,minimum:i16,thresholds:impl Iterator<Item=i16>)->(u
 pub fn skill_rank(active:u32,penalties:u32,strength:u32)->[u32;3]{
     [u32::MAX-active,penalties,u32::MAX-strength]
 }
+
+/// A variation is a set of positive activated tiers, not an armor/charm loadout.
+pub fn skill_signature(points:&[i16;TREE_COUNT],activations:impl Iterator<Item=(u8,i8)>)->[i8;TREE_COUNT]{
+ let mut signature=[0;TREE_COUNT];
+ for(tree,threshold)in activations{let t=tree as usize;if threshold>0&&points[t]>=i16::from(threshold){signature[t]=signature[t].max(threshold);}}
+ signature
+}
+#[derive(Clone,Copy,Debug,PartialEq,Eq)]pub enum SearchStop{Time,Variations}
+pub const SEARCH_SECONDS:f64=60.0;
+pub const SEARCH_VARIATIONS:usize=5;
+pub struct SearchBudget{started:Option<f64>,signatures:[[i8;TREE_COUNT];SEARCH_VARIATIONS],pub variations:usize,pub elapsed:f64}
+impl SearchBudget{
+ pub const fn new()->Self{Self{started:None,signatures:[[0;TREE_COUNT];SEARCH_VARIATIONS],variations:0,elapsed:0.0}}
+ pub fn observe(&mut self,signature:[i8;TREE_COUNT]){
+  if self.variations<SEARCH_VARIATIONS&&!self.signatures[..self.variations].contains(&signature){self.signatures[self.variations]=signature;self.variations+=1;}
+ }
+ pub fn poll(&mut self,now:f64)->Option<SearchStop>{
+  let started=*self.started.get_or_insert(now);self.elapsed=(now-started).max(self.elapsed);
+  if self.variations>=SEARCH_VARIATIONS{Some(SearchStop::Variations)}else if self.elapsed>=SEARCH_SECONDS{Some(SearchStop::Time)}else{None}
+ }
+}

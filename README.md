@@ -90,7 +90,10 @@ quantities and rates. Items can list both monster drops and quest rewards.
   Spare slots are refined for bonus skills using available decorations, without
   breaking the requested skills. This bounded search does not guarantee the best
   possible combination. Choose skills with B, then Y to search or pause.
-  L3 (F10 on keyboard) opens All skills directly. The summary shows bonus skills,
+  L3 (F10 on keyboard) explains the highlighted skill in the picker and opens
+  All skills from build results. Active skills include numeric effect captions;
+  B (Enter) in All skills opens the full effect, with D-pad scrolling and
+  A (Escape) to return. The summary shows bonus skills,
   penalties and inactive skill-point totals; slot icons and decoration placements
   show how armor, charm and weapon slots are used. Left/Right selects
   a build; Up/Down selects a piece or its decoration placements. R3 adds missing
