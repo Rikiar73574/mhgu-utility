@@ -25,3 +25,8 @@ rustc +nightly --edition 2024 --test ../tests/gather_filter.rs -o ../build/gathe
 ../build/gather-filter-tests
 rustc +nightly --edition 2024 --test ../tests/gather_zones.rs -o ../build/gather-zones-tests
 ../build/gather-zones-tests
+
+for module in set_solver set_player set_unlock; do
+  rustc +nightly --edition 2024 --test "../tests/$module.rs" -o "../build/$module-tests"
+  "../build/$module-tests"
+done

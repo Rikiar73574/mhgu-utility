@@ -74,6 +74,16 @@ quantities and rates. Items can list both monster drops and quest rewards.
   The two mining-point types use grey and gold native pickaxe icons. Markers
   retain their actual native map positions, including overlaps. Player and
   monster markers do not reposition them.
+- Armor's **Set Builder** searches for up to six requested activated skills using
+  your character's gender, hunter type, equipped weapon slots and progression.
+  It includes unowned armor without requiring crafting stock, and checks every
+  owned charm. Choose skills with B, then Y to search or pause. Left/Right selects
+  a build; Up/Down selects a piece or its decoration placements. R3 adds missing
+  armor pieces to the wishlist. A goes back.
+  Verified equipment is tried first. Results with incomplete acquisition-source coverage are explicitly marked
+  **availability unverified**; these may include armor whose unlock cannot yet be confirmed. Unindexed acquisition paths are never treated as proof that armor is locked. The search pauses after 24 distinct builds;
+  this is a result limit, not a claim that no other builds exist. Full mixed-set
+  previews are not yet part of the builder.
 - Xbox B selects; Xbox A goes back. LB/RB changes section.
 - MHGURecomp 0.15.4 or later keeps the mouse free while browsing. Clicking the
   Compendium does not capture it; Escape retains the game's mouse-release shortcut.

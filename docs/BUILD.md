@@ -9,10 +9,10 @@ Populate the Cargo cache separately if building on a new machine.
 
 ## Reuse existing local generated data
 
-This preserves the nine complete generated Rust modules byte-for-byte, including
+This preserves the ten complete generated Rust modules byte-for-byte, including
 all existing artwork, item/weapon metadata and game ID mappings. Use a snapshot
 prepared for this source revision; older caches lack source targets, point
-groups, Prowler/target quest flags or native font metrics and must be regenerated. It copies only
+groups, native armor/jewel recipes, Prowler/target quest flags or native font metrics and must be regenerated. It copies only
 into ignored `build/`, without changing the source checkout supplied as input.
 
 ```sh
@@ -52,7 +52,7 @@ locally extracted glyph masks into proportional outlines for the existing Forge
 font atlas. Optionally set `MHGU_FONT_DIR` to a locally installed Hunter Font
 directory containing `font_festa.gfd` and `font_festa_*_HQ.tex.z` to use its
 higher-resolution glyphs. No font or UI artwork is downloaded. All derived JSON,
-PNG and Rust files remain in ignored `build/`; none is a source-distribution input. The nine generated Rust modules are copied into
+PNG and Rust files remain in ignored `build/`; none is a source-distribution input. The ten generated Rust modules are copied into
 Cargo's output directory by `mod/build.rs`. `build/input-manifest.json` records
 input/generated hashes without storing private input paths.
 
@@ -73,6 +73,7 @@ MHGU_GAME_DIR=/path/to/owned-game/data \
 MHGU_GAME_DIR=/path/to/owned-game/data \
   python3 tests/arm_armor.py
 MHGU_GAME_DIR=/path/to/owned-game/data python3 tests/arm_quest.py
+MHGU_GAME_DIR=/path/to/owned-game/data python3 tests/arm_set_builder.py
 MHGU_GAME_DIR=/path/to/owned-game/data python3 tests/arm_gather_map.py
 ```
 
