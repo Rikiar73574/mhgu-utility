@@ -74,6 +74,7 @@ MHGU_GAME_DIR=/path/to/owned-game/data \
   python3 tests/arm_armor.py
 MHGU_GAME_DIR=/path/to/owned-game/data python3 tests/arm_quest.py
 MHGU_GAME_DIR=/path/to/owned-game/data python3 tests/arm_set_builder.py
+MHGU_GAME_DIR=/path/to/owned-game/data python3 tests/arm_input_capture.py
 MHGU_GAME_DIR=/path/to/owned-game/data python3 tests/arm_gather_map.py
 ```
 

@@ -22,7 +22,7 @@ the preview; equipped armor and stats stay unchanged.
 - **Weapon trees:** connected upgrade trees for each weapon type, rarity ordering,
   weapon stats, sharpness, crafting recipes, and clickable material sources.
 - **Armor browser:** browse sets or individual pieces; filter by rank, hunter type
-  and gender; inspect defense, resistances, slots, skills and crafting materials.
+  and gender; distinguish Blademaster and Gunner entries; inspect defense, resistances, slots, skills and crafting materials.
 - **Armor previews:** rotating native full-set models using the game's assets and
   installed texture replacements, where a reliable model mapping is available.
 - **Weapon and armor wishlists:** save individual recipes or complete armor sets,
@@ -51,8 +51,9 @@ The [Set Builder branch](https://github.com/Rikiar73574/mhgu-utility/tree/feat/s
 adds skill-based armor searches, automatic character settings, every owned charm,
 per-piece decoration placements, and an action to wishlist missing armor.
 Missing crafting stock does not exclude armor. Verified availability is preferred;
-unconfirmed unlocks remain explicitly labelled. Searches can be paused and stop
-after 24 distinct results. Mixed-set model previews are not included yet.
+unconfirmed unlocks remain explicitly labelled. Searches keep improving a pool of up to 24 best-found builds; a bounded work
+budget pauses the search, and Y resumes. Bonus skills, penalties, slot usage
+and per-piece gem placement are shown. Mixed-set model previews are not included yet.
 **This preview is not included in the latest published release.**
 
 | Select desired skills | Suggested build |
@@ -78,31 +79,41 @@ quantities and rates. Items can list both monster drops and quest rewards.
   The two mining-point types use grey and gold native pickaxe icons. Markers
   retain their actual native map positions, including overlaps. Player and
   monster markers do not reposition them.
-- Armor's **Set Builder** searches for up to six requested activated skills using
+- The dedicated **Set Builder** sidebar section searches for up to six requested activated skills using
   your character's gender, hunter type, equipped weapon slots and progression.
   It includes unowned armor without requiring crafting stock, and checks every
-  owned charm. Choose skills with B, then Y to search or pause. Left/Right selects
+  owned charm. Choose skills with B, then Y to search or pause. All skills shows bonus skills,
+  penalties and inactive skill-point totals; slot icons and decoration placements
+  show how armor, charm and weapon slots are used. Left/Right selects
   a build; Up/Down selects a piece or its decoration placements. R3 adds missing
   armor pieces to the wishlist. A goes back.
   Verified equipment is tried first. Results with incomplete acquisition-source coverage are explicitly marked
-  **availability unverified**; these may include armor whose unlock cannot yet be confirmed. Unindexed acquisition paths are never treated as proof that armor is locked. The search pauses after 24 distinct builds;
-  this is a result limit, not a claim that no other builds exist. Full mixed-set
+  **availability unverified**; these may include armor whose unlock cannot yet be confirmed. Unindexed acquisition paths are never treated as proof that armor is locked. The search keeps the best 24 builds found and continues improving their fit,
+  preferring fewer wasted skill points, fewer gem slots used and more free slots.
+  It pauses at a bounded work budget; Y continues. These are best-found results,
+  not a claim of global optimality. Full mixed-set
   previews are not yet part of the builder.
-- Xbox B selects; Xbox A goes back. LB/RB changes section.
+- Xbox B selects; Xbox A goes back. LB/RB changes section. Game buttons and
+  movement are blocked while the interactive utility is open, including when
+  another Forge mod supplies controller state. Closing restores normal input;
+  the passive HUD leaves gameplay controls available.
 - MHGURecomp 0.15.4 or later keeps the mouse free while browsing. Clicking the
   Compendium does not capture it; Escape retains the game's mouse-release shortcut.
   The passive hunt tracker leaves mouse-look controls unchanged.
 - X opens a compact QWERTY controller keyboard with live matches and clickable keys.
   Type directly on a physical keyboard to search inline, without opening that
   keyboard. Selection, caret movement, cut/copy/paste and UTF-8-safe deletion are
-  supported; hints follow the active device. Searches stay within the selected
+  supported; Up/Down immediately browses search results while Left/Right edits
+  the caret. Hints follow the active device. Searches stay within the selected
   weapon type. Interface size can be
   adjusted in the Forge settings.
 - Weapon families and sibling branches are ordered by rarity. LT/RT jumps between
   families; Up/Down stays in the same tree column.
 - Armor can be browsed by set or equipment slot, with rank, hunter-type and gender filters. Y changes hunter type, L3 gender
   and LT/RT rank; keyboard equivalents are shown on screen. Its details show defense, resistances,
-  skill points, crafting materials and the other pieces in the same set.
+  skill points, crafting materials and the other pieces in the same set. Opening
+  a set shows combined defense, resistances, slots and skill activations; the
+  Full set / piece tabs switch between the overview and individual equipment.
   Models require a reliable mapping to the owned game dump; unmapped sets show
   an unavailable message. No models or textures are embedded in the plugin.
 - R3 adds or removes a weapon or armor recipe from the wishlist, including supported

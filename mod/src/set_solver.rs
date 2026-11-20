@@ -10,6 +10,8 @@
 pub const MAX_GOALS: usize = 6;
 pub const MAX_JEWELS: usize = 21;
 const BINS: usize = 7;
+// A bounded ordering hint, never a filter on the catalog.
+const PREFERRED: usize = 8;
 const FRAMES: usize = MAX_JEWELS + BINS + 1;
 pub type Points = [i16; MAX_GOALS];
 
@@ -117,6 +119,11 @@ pub struct Solver {
     can_torso: [bool; 6],
     efficiency: [i32; MAX_GOALS],
     negative_efficiency: [i32; MAX_GOALS],
+    preferred: [[u32; PREFERRED]; 6],
+    preferred_score: [[i64; PREFERRED]; 6],
+    preferred_verified: [[bool; PREFERRED]; 6],
+    preferred_count: [u8; 6],
+    preferred_used: [u8; 6],
     best: [u32; 6],
     best_verified: [bool; 6],
     best_jewel: u32,
@@ -124,7 +131,7 @@ pub struct Solver {
     best_jewel_score: i64,
     best_score: [i64; 6],
     depth: usize,
-    next: [u32; 6],
+    next: [u64; 6],
     chosen: [u32; 6],
     gear: [Gear; 6],
     partial: [[i32; MAX_GOALS + 2]; 7],
@@ -135,6 +142,7 @@ pub struct Solver {
     frame_count: usize,
     placements: [Placement; MAX_JEWELS],
     after_found: bool,
+    equipment_found: bool,
     pub work_done: u64,
 }
 
@@ -145,11 +153,13 @@ impl Solver {
             query, scan_kind: 0, scan_index: 0, counts: [0; 7],
             maxima: [[i32::MIN; MAX_GOALS]; 6], minima: [[i32::MAX; MAX_GOALS]; 6], max_slots: [0; 6],
             can_torso: [false; 6], efficiency: [0; MAX_GOALS], negative_efficiency: [0; MAX_GOALS],
+            preferred: [[0; PREFERRED]; 6], preferred_score: [[i64::MIN; PREFERRED]; 6],
+            preferred_verified: [[false; PREFERRED]; 6], preferred_count: [0; 6], preferred_used: [0; 6],
             best: [0; 6], best_verified: [false; 6], best_jewel: 0, best_jewel_verified: false, best_jewel_score: i64::MIN, best_score: [i64::MIN; 6], depth: 0,
             next: [0; 6], chosen: [0; 6], gear: [Gear::default(); 6],
             partial: [[0; MAX_GOALS + 2]; 7], specials: false, bins: [0; BINS], multiplier: 1,
             frames: [Frame::default(); FRAMES], frame_count: 0,
-            placements: [Placement::default(); MAX_JEWELS], after_found: false, work_done: 0,
+            placements: [Placement::default(); MAX_JEWELS], after_found: false, equipment_found: false, work_done: 0,
         }
     }
 
@@ -162,9 +172,21 @@ impl Solver {
     /// coverage, rather than enumeration of every decoration layout.
     pub fn next_equipment(&mut self) -> bool {
         if self.phase != 2 || !self.after_found { return false; }
+        self.finish_equipment()
+    }
+
+    /// End bounded decoration refinement for the current armor/charm combination,
+    /// even after a `Working` tick. Allowed only after this equipment has emitted
+    /// `Found`; the marker resets when a new combination starts. Callers must
+    /// have validated and retained a solution before skipping its alternatives.
+    /// As with `next_equipment`, completion covers equipment combinations, not
+    /// every decoration layout. Returns false outside that equipment's jewel DFS.
+    pub fn finish_equipment(&mut self) -> bool {
+        if self.phase != 2 || !self.equipment_found { return false; }
         self.frame_count = 0;
         self.phase = 1;
         self.after_found = false;
+        self.equipment_found = false;
         true
     }
 
@@ -182,6 +204,7 @@ impl Solver {
                 1 => self.armor_step(catalog),
                 2 => if let Some(solution) = self.jewel_step(catalog) {
                     self.after_found = true;
+                    self.equipment_found = true;
                     return Tick::Found(solution);
                 },
                 _ => {},
@@ -243,7 +266,27 @@ impl Solver {
                 self.maxima[kind][g] = self.maxima[kind][g].max(points);
                 self.minima[kind][g] = self.minima[kind][g].min(points);
                 let target = self.orient(self.query.goals[g].threshold as i32, g);
-                score += points.min(target.max(0)) as i64 * 16;
+                score += points.min(target.max(0)) as i64 * 16
+                    - (points - target.max(0)).max(0) as i64 * 16;
+            }
+            // Retain a few promising records while doing the required scan.
+            // Equal scores preserve catalog order. All omitted records are still
+            // visited by the fallback pass, including unverified candidates.
+            let count = self.preferred_count[kind] as usize;
+            let mut position = 0;
+            while position < count && (self.preferred_verified[kind][position], self.preferred_score[kind][position]) >= (verified, score) {
+                position += 1;
+            }
+            if position < PREFERRED {
+                for at in (position + 1..(count + 1).min(PREFERRED)).rev() {
+                    self.preferred[kind][at] = self.preferred[kind][at - 1];
+                    self.preferred_score[kind][at] = self.preferred_score[kind][at - 1];
+                    self.preferred_verified[kind][at] = self.preferred_verified[kind][at - 1];
+                }
+                self.preferred[kind][position] = index;
+                self.preferred_score[kind][position] = score;
+                self.preferred_verified[kind][position] = verified;
+                self.preferred_count[kind] = (count + 1).min(PREFERRED) as u8;
             }
             if (verified, score) > (self.best_verified[kind], self.best_score[kind]) {
                 self.best_verified[kind] = verified;
@@ -290,14 +333,51 @@ impl Solver {
 
     fn armor_step<C: Catalog>(&mut self, catalog: &C) {
         let d = self.depth;
-        if self.next[d] == self.counts[d] {
+        let preferred_count = self.preferred_count[d] as u32;
+        if self.next[d] == self.counts[d] as u64 + preferred_count as u64 {
             self.next[d] = 0;
+            self.preferred_used[d] = 0;
             if d == 0 { self.phase = 3; } else { self.depth -= 1; }
             return;
         }
-        let index = ((self.best[d] as u64 + self.next[d] as u64) % self.counts[d] as u64) as u32;
+        let index;
+        if self.next[d] < preferred_count as u64 {
+            // Re-rank only the bounded shortlist for this partial set. Useful
+            // contribution stops at the remaining deficit; excess is penalized.
+            // This is a soft preference even under wrapping/special arithmetic:
+            // neither candidate eligibility nor feasibility bounds change.
+            let mut selected = 0;
+            let mut best = (false, i64::MIN);
+            for at in 0..preferred_count as usize {
+                if self.preferred_used[d] & (1 << at) != 0 { continue; }
+                let candidate = self.preferred[d][at];
+                let gear = if d == 5 { catalog.charm(candidate) } else { catalog.armor(d, candidate) };
+                let mut score = gear.slots as i64 * 4 + if gear.torso_up { 8 } else { 0 };
+                for g in 0..self.query.goal_count as usize {
+                    let deficit = (self.orient(self.query.goals[g].threshold as i32 - self.partial[d][g], g)).max(0);
+                    let points = self.orient(gear.points[g] as i32, g);
+                    score += points.min(deficit) as i64 * 16 - (points - deficit).max(0) as i64 * 16;
+                }
+                let rank = (self.preferred_verified[d][at], score);
+                if rank > best { best = rank; selected = at; }
+            }
+            self.preferred_used[d] |= 1 << selected;
+            index = self.preferred[d][selected];
+        } else {
+            let ordinal = self.next[d] - preferred_count as u64;
+            index = ((self.best[d] as u64 + ordinal as u64) % self.counts[d] as u64) as u32;
+            self.next[d] += 1;
+            if self.preferred[d][..preferred_count as usize].contains(&index) { return; }
+            let gear = if d == 5 { catalog.charm(index) } else { catalog.armor(d, index) };
+            self.visit_armor(d, index, gear);
+            return;
+        }
         self.next[d] += 1;
         let gear = if d == 5 { catalog.charm(index) } else { catalog.armor(d, index) };
+        self.visit_armor(d, index, gear);
+    }
+
+    fn visit_armor(&mut self, d: usize, index: u32, gear: Gear) {
         self.gear[d] = gear;
         self.chosen[d] = index;
         for g in 0..self.query.goal_count as usize {
@@ -331,6 +411,7 @@ impl Solver {
         }
         self.frames[0] = Frame { charm, per_bin, present, remaining: self.bins[0], totals, ..Frame::default() };
         self.frame_count = 1;
+        self.equipment_found = false;
         self.phase = 2;
     }
 

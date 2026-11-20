@@ -210,9 +210,99 @@ fn totals(d:&Data, native:bool, deviant:u8)->[i32;6] {
     let mut data=base();data.armor[0]=vec![gear(4,0,1),gear(2,0,1)];data.charms=vec![gear(3,0,0),gear(1,0,0)];data.jewels=vec![jewel(4,0,1),jewel(2,0,1)];
     let mut c=Preferred{data,prefer:false};
     let mut q=query(5,0);q.native_wrapping=true;
-    let (unpreferred,expected)=collect(&c,q);assert_eq!(unpreferred.0[0],0);assert_eq!(unpreferred.1,0);
+    let (unpreferred,expected)=collect(&c,q);assert_eq!(unpreferred.0[0],0);assert_eq!(unpreferred.1,1);
     c.prefer=true;let (preferred,actual)=collect(&c,q);
     assert_eq!(preferred.0[0],1);assert_eq!(preferred.1,1);assert_eq!(preferred.2,vec![(0,1)]);
     assert_eq!(actual,expected);
     let combinations:BTreeSet<_>=actual.iter().map(|k|(k.0,k.1)).collect();assert_eq!(combinations.len(),4);
+}
+
+fn first_solution(d: &Data, q: Query) -> Solution {
+    let mut solver = Solver::new(q);
+    loop {
+        match solver.tick(d, 1) {
+            Tick::Found(s) => return s,
+            Tick::Working => {},
+            other => panic!("expected solution, got {other:?}"),
+        }
+    }
+}
+
+#[test]
+fn exact_threshold_equipment_precedes_overshoot_in_either_catalog_order() {
+    for reverse in [false, true] {
+        let mut d = base();
+        d.armor[0] = vec![gear(25, 20, 0), gear(20, 20, 0)];
+        if reverse { d.armor[0].reverse(); }
+        assert_eq!(first_solution(&d, query(20, 20)).totals[..2], [20, 20]);
+        assert_eq!(run(&d, query(20, 20), 1), brute(&d, query(20, 20)));
+    }
+    let mut d = base();
+    d.armor[0][0] = gear(25, 20, 0);
+    assert_eq!(first_solution(&d, query(20, 20)).totals[..2], [25, 20]);
+}
+
+#[test]
+fn charm_order_uses_remaining_deficit_without_losing_other_candidates() {
+    let mut d = base();
+    d.armor[0][0] = gear(15, 20, 0);
+    d.charms = vec![gear(10, 0, 0), gear(5, 0, 0)];
+    assert_eq!(first_solution(&d, query(20, 20)).totals[..2], [20, 20]);
+    assert_eq!(run(&d, query(20, 20), 1), brute(&d, query(20, 20)));
+}
+
+#[test]
+fn shortlist_remains_complete_beyond_its_capacity() {
+    let mut d = base();
+    d.armor[0] = (0..19).map(|i| gear(i, 20, 0)).collect();
+    d.charms = (0..12).map(|i| gear(i, 0, 0)).collect();
+    assert_eq!(run(&d, query(20, 20), 1), brute(&d, query(20, 20)));
+}
+
+#[test]
+fn continued_layout_search_can_reduce_excess_with_exact_per_piece_packing() {
+    let mut d = base();
+    d.armor[0][0] = gear(15, 20, 2);
+    d.armor[1][0].slots = 1;
+    // A three-slot exact jewel cannot fit these bins. The exact alternative
+    // uses the two-slot jewel; the stronger one-slot jewel overshoots.
+    d.jewels = vec![jewel(10, 0, 1), jewel(5, 0, 2), jewel(5, 0, 3)];
+    let q = query(20, 20);
+    let all = run(&d, q, 1);
+    assert_eq!(all, brute(&d, q));
+    assert!(all.iter().any(|k| k.3[..2] == [25, 20]));
+    let exact: Vec<_> = all.iter().filter(|k| k.3[..2] == [20, 20]).collect();
+    assert_eq!(exact.len(), 1);
+    assert_eq!(exact[0].2, vec![(0, 1)]);
+}
+
+#[test]
+fn refinement_can_finish_after_working_without_skipping_unseen_equipment() {
+    let mut d = base();
+    d.armor[0] = vec![gear(2, 0, 2), gear(3, 0, 2)];
+    d.charms = vec![gear(1, 0, 1), gear(2, 0, 0)];
+    d.jewels = vec![jewel(1, 0, 1), jewel(2, 0, 1)];
+    let q = query(0, 0);
+    let expected: BTreeSet<_> = run(&d, q, 11).into_iter().map(|r| (r.0, r.1)).collect();
+    let mut solver = Solver::new(q);
+    assert!(!solver.finish_equipment());
+    let mut actual = BTreeSet::new();
+    let mut complete = false;
+    for _ in 0..10000 {
+        match solver.tick(&d, 1) {
+            Tick::Found(s) => {
+                assert!(actual.insert((s.armor, s.charm)));
+                assert_eq!(solver.tick(&d, 1), Tick::Working);
+                assert!(!solver.next_equipment());
+                assert!(solver.finish_equipment());
+                assert!(!solver.finish_equipment());
+            },
+            Tick::Working => assert!(!solver.finish_equipment()),
+            Tick::Complete => { complete = true; break; },
+            other => panic!("{other:?}"),
+        }
+    }
+    assert!(complete);
+    assert_eq!(actual, expected);
+    assert!(!solver.finish_equipment());
 }

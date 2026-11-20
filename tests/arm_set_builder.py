@@ -93,12 +93,8 @@ with tempfile.TemporaryDirectory(prefix='compendium-set-builder-') as folder:
         return out
     press(1 << 10)
     press((1 << 10) | (1 << 12))
-    for _ in range(4):
-        press(1 << 7)
-    assert 'Set Builder' in render(), render()
-    for _ in range(2):
-        press(1 << 15)
-    out = press(1)
+    for _ in range(5):
+        out = press(1 << 7)
     assert 'Choose activated skills' in out, out
     assert any('3 owned charms' in text for text in out), out
     out = press(1 << 2)
@@ -117,19 +113,24 @@ with tempfile.TemporaryDirectory(prefix='compendium-set-builder-') as folder:
         assert not any('capacity exceeded' in text.lower() or 'snapshot or search data is invalid' in text for text in out), out
     else:
         raise AssertionError(('No result before frame budget', out))
-    # Pause so browsing and wishlist assertions use a stable first solution.
+    # Pause so browsing and wishlist assertions use a stable best-ranked solution.
     if 'Y  Pause search' in out:
         out = press(1 << 2)
-    assert 'Equipment box #1901' in out, out
+    assert 'No talisman required' in out, out
     assert any(re.fullmatch(r'Acrobat  (\d+) / 10', text) and int(re.fullmatch(r'Acrobat  (\d+) / 10', text)[1]) >= 10 for text in out), out
     assert out.count('Missing') == 5, out
+    assert any(re.fullmatch(r'Base defense \d+   Slots: 0 used / \d+ total', text) for text in out), out
+    assert any(text.startswith('B  All skills (') for text in out), out
     out = press(1 << 5)
     rows = path.read_text().splitlines()
     assert len(rows) == 5 and all(row.startswith('armor:') for row in rows), rows
     assert len(set(rows)) == 5, rows
     press(1 << 5)
     assert path.read_text().splitlines() == rows, 'Adding missing armor was not idempotent'
-    # Resume and verify result pagination reaches a different armor/charm build.
+    # Resuming keeps exploring and preserves or improves the requested fit.
+    # This real-catalog fixture need not fill the retained pool quickly.
+    initial_points = int(next(re.fullmatch(r'Acrobat  (\d+) / 10', text)[1]
+                              for text in out if re.fullmatch(r'Acrobat  (\d+) / 10', text)))
     press(1 << 2)
     for _ in range(500):
         out = render()
@@ -138,8 +139,21 @@ with tempfile.TemporaryDirectory(prefix='compendium-set-builder-') as folder:
             break
     else:
         raise AssertionError(('Search never produced a second distinct build', out))
-    if 'Y  Pause search' in out:
-        press(1 << 2)
+    for _ in range(32):
+        out = render()
+    summary = next(text for text in out if ' builds found    ' in text)
+    pool_size, steps = map(int, re.fullmatch(r'(\d+) builds found    (\d+) search steps', summary).groups())
+    assert 2 <= pool_size <= 24, out
+    assert 'Y  Pause search' in out, out
+    before = steps
+    for _ in range(8):
+        out = render()
+    summary = next(text for text in out if ' builds found    ' in text)
+    assert int(summary.split()[3]) > before, out
+    out = press(1 << 2)
+    best_points = int(next(re.fullmatch(r'Acrobat  (\d+) / 10', text)[1]
+                           for text in out if re.fullmatch(r'Acrobat  (\d+) / 10', text)))
+    assert best_points <= initial_points, (initial_points, best_points, out)
     out = press(1 << 14)
     assert any(text.startswith('Build 2 /') for text in out), out
     out = press(1 << 12)
@@ -147,22 +161,55 @@ with tempfile.TemporaryDirectory(prefix='compendium-set-builder-') as folder:
     out = press(1)
     assert 'Crafting materials' in out, out
     out = press(2)
-    assert 'Equipment box #1901' in out, out
+    assert 'No talisman required' in out, out
+    slot_summary = next(re.fullmatch(r'Base defense \d+   Slots: (\d+) used / (\d+) total', text)
+                        for text in out if text.startswith('Base defense '))
     for _ in range(5):
         press(1 << 15)
     out = press(1)
     assert 'Decoration placement' in out and 'No decorations required.' in out, out
+    placement = next(text for text in out if all(part in text for part in ('Head', 'Chest', 'Arms', 'Waist', 'Legs', 'Charm', 'Weapon')))
+    per_piece = re.findall(r'(Head|Chest|Arms|Waist|Legs|Charm|Weapon) ?(\d+)/(\d+)', placement)
+    assert len(per_piece) == 7, out
+    assert all(int(used) <= int(capacity) for _, used, capacity in per_piece), out
+    assert sum(int(used) for _, used, _ in per_piece) == int(slot_summary[1]), out
+    assert sum(int(capacity) for _, _, capacity in per_piece) == int(slot_summary[2]), out
     for bits in (1 << 15, 1 << 14, 1 << 13, 1 << 12):
         press(bits)  # Empty jewel list is bounded in every direction.
     out = press(2)
-    assert 'Equipment box #1901' in out, out
+    assert 'No talisman required' in out, out
+    # The seventh result card exposes every contributing tree, including
+    # unrequested inactive/negative points that the compact summary omits.
+    press(1 << 15)
+    out = press(1)
+    assert 'All skills' in out and 'Skill tree' in out and 'Activated skill' in out and 'Points' in out, out
+    assert 'Nimbleness' in out and 'Acrobat' in out, out
+    assert 'Not active' in out, out
+    assert any(re.fullmatch(r'[+-]\d+', text) for text in out), out
+    page = next(text for text in out if re.fullmatch(r'\d+ active skills   \d+ skill trees   Page \d+ / \d+', text))
+    trees = int(page.split()[3])
+    assert trees > 1, out
+    pages = int(page.rsplit(' ', 1)[1])
+    for _ in range(pages + 1):
+        out = press(1 << 14)
+    assert any(text.endswith(f'Page {pages} / {pages}') for text in out), out
+    for _ in range(pages + 1):
+        out = press(1 << 12)
+    assert any(text.endswith(f'Page 1 / {pages}') for text in out), out
+    out = press(2)
+    assert any(text.startswith('Build 1 /') for text in out), out
     out = press(2)
     assert 'Choose activated skills' in out and '1 / 6 selected' in out, out
     out = press(2)
-    assert 'Armor sets' in out and 'Set Builder' in out, out
+    assert 'MHGU Utility' not in out, out
+    press(1 << 10)
+    out = press((1 << 10) | (1 << 12))
+    assert 'Choose activated skills' in out, out
+    out = press(1 << 6)
+    assert 'Armor sets' in out and 'Choose activated skills' not in out, out
     assert not writes, writes
     assert bytes(u.mem_read(fixture, 0x100000)) == fixture_before
     assert native_calls.get(0x13f03c, 0) >= 4 and native_calls.get(0x54ce08, 0) > 0, native_calls
-    print('ARM Set Builder passed: town capture, 3 charms through box #1901, skill/search/pause, '
-          'missing stock, result pagination/details/back, empty jewels, 5 missing wishlist pieces/idempotence, '
+    print('ARM Set Builder passed: town capture, 3 charms in full physical box, skill/search/pause, '
+          'missing stock, result pagination/details/back, empty jewels/slot allocation, all skill trees/activation/paging, 5 missing wishlist pieces/idempotence, '
           'no fixture writes; preparation frames:', frames + 1)
