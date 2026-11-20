@@ -109,7 +109,7 @@ def preview(name):
   if box[2]>box[0] and box[3]>box[1]:im.paste(layer.crop(box),box,layer.crop(box))
  im.save(ROOT/'build'/name)
 SELECT,BACK=1,2 # Physical Xbox B / A
-hid(0);out=render();assert 'MHGU Compendium' in out and 'Item list' in out,out
+hid(0);out=render();assert 'MHGU Utility' in out and 'Item list' in out,out
 press(SELECT) # Open supplies category.
 out=press(SELECT);assert 'ITEM SOURCES' in out,out
 out=press(BACK);assert 'ITEM SOURCES' not in out

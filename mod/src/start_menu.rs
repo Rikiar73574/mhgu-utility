@@ -9,7 +9,7 @@ static OPEN:AtomicBool=AtomicBool::new(false);
 static mut HOOKS:[Hook;4]=[const{Hook([0;19])};4];
 static mut ORIGINAL:[u32;4]=[0;4];
 unsafe extern "C"{#[link_name="forge_hook_create"]fn create(out:*mut Hook,target:u32,detour:u32,original:*mut u32)->*mut Hook;}
-fn label()->u32{c"Compendium".as_ptr()as u32}
+fn label()->u32{c"MHGU Utility".as_ptr()as u32}
 fn valid(p:u32)->bool{(0x08000000..0xa7ff0000).contains(&p)&&p&3==0}
 unsafe fn read(p:u32,off:u32)->u32{unsafe{ptr::read_unaligned((p+off)as *const u32)}}
 unsafe fn write(p:u32,off:u32,v:u32){unsafe{ptr::write_unaligned((p+off)as *mut u32,v)}}

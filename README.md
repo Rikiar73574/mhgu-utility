@@ -1,4 +1,4 @@
-# Hunter's Compendium
+# MHGU Utility
 
 A standalone Forge plugin for MHGURecomp 0.15.4 or later and MHGU 1.4.0. Browse items, weapon
 upgrade trees, armor pieces and sets, crafting materials, gathering and monster
@@ -9,7 +9,7 @@ The game continues while the browser is open. Armor details include a native
 full-set model preview using installed texture replacements. Right stick rotates
 the preview; equipped armor and stats stay unchanged.
 
-[Download the release](https://github.com/Rikiar73574/mhgu-compendium/releases/latest)
+[Download the release](https://github.com/Rikiar73574/mhgu-utility/releases/latest)
 
 
 [Build from source](docs/BUILD.md)
@@ -22,8 +22,8 @@ quantities and rates. Items can list both monster drops and quest rewards.
 [Source coverage](docs/source-coverage.md) records 2,840 acquisition pages,
 41 internal game entries and 25 explicit data gaps; sources are never guessed.
 
-- Start + D-pad Left opens or closes the Compendium; F6 is the keyboard shortcut.
-- During a quest, open **Compendium** on page two of the native Start menu,
+- Start + D-pad Left opens or closes MHGU Utility; F6 is the keyboard shortcut.
+- During a quest, open **MHGU Utility** on page two of the native Start menu,
   or use Start + Left / F6, to filter gathering points. Category and individual
   item checkboxes list this quest map's drops and their chances. Ranges mean
   different spots have different odds; quantities do not multiply those odds.
@@ -93,3 +93,12 @@ at runtime or to compile this standalone tree.
 | Items | Weapon tree | Passive quest tracker |
 | --- | --- | --- |
 | ![Item browser](docs/screenshots/items.png) | ![Weapon upgrade tree](docs/screenshots/weapon-tree.png) | ![Passive material tracker](docs/screenshots/quest-tracker.png) |
+
+## Naming acknowledgement
+
+Ghostryx117’s MHGU Compendium is a separate project whose name predates this
+project and inspired its former name. This project is now called MHGU Utility
+to avoid confusion. See [the naming discussion](https://github.com/Rikiar73574/mhgu-utility/issues/4).
+
+The existing plugin, archive and saved-data filenames remain unchanged for
+compatibility with installed mods, wishlists and settings.

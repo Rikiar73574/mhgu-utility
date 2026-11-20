@@ -79,7 +79,7 @@ assert bytes(u.mem_read(rows,13*8))==row_bytes,'stock rows (including Pause) mod
 assert bytes(u.mem_read(hints,13*12))==hint_bytes,'stock hints modified'
 assert allocations==[14*8,14*12] and freed==[old_rows,old_hints]
 assert get(rows+13*8)==1
-label=get(rows+13*8+4);assert bytes(u.mem_read(label,11))==b'Compendium\0'
+label=get(rows+13*8+4);assert bytes(u.mem_read(label,13))==b'MHGU Utility\0'
 assert bytes(u.mem_read(hints+13*12+4,8))==b'\xff'*8
 hook(0x677d0c,obj)
 assert struct.unpack('<H',u.mem_read(obj+0xec,2))[0]==14

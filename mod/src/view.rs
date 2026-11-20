@@ -31,7 +31,7 @@ pub(super) fn draw(u:&mut Ui){
  if model{c.rect(0.0,0.0,218.0,800.0,BG);c.rect(218.0,0.0,300.0,218.0,BG);c.rect(218.0,630.0,300.0,170.0,BG);c.rect(518.0,0.0,762.0,800.0,BG);}else{c.rect(0.0,0.0,1280.0,800.0,BG);}
  c.frame(0,0.0,0.0,1280.0,800.0,u32::MAX);
  let title=c.v(8.0,6.0);super::game_ui::title(&c.d,[title.x,title.y,1264.0*s,39.0*s]);
- c.text(28.0,14.0,"MHGU Compendium",TEXT,22.0);c.text(315.0,17.0,"Back",TEXT,15.0);c.hit(305.0,5.0,95.0,35.0,Action::Back);c.text(1050.0,17.0,"Prev       Next",TEXT,15.0);c.hit(1040.0,5.0,80.0,35.0,Action::Page(false));c.hit(1120.0,5.0,95.0,35.0,Action::Page(true));
+ c.text(28.0,14.0,"MHGU Utility",TEXT,22.0);c.text(315.0,17.0,"Back",TEXT,15.0);c.hit(305.0,5.0,95.0,35.0,Action::Back);c.text(1050.0,17.0,"Prev       Next",TEXT,15.0);c.hit(1040.0,5.0,80.0,35.0,Action::Page(false));c.hit(1120.0,5.0,95.0,35.0,Action::Page(true));
  c.line(190.0,51.0,190.0,748.0,EDGE);c.text(18.0,70.0,"Navigation",MUTED,14.0);
  for(i,name)in["Items","Weapons","Locations","Wishlist","Armor"].iter().enumerate(){let y=108.0+i as f32*55.0;c.hit(10.0,y-9.0,170.0,44.0,Action::Tab(i));if i==u.tab as usize{c.card(10.0,y-9.0,170.0,44.0,true);for row in 0..5{let width=(5-row)as f32;c.rect(20.0,y+6.0+row as f32, width,1.0,GOLD);c.rect(20.0,y+6.0-row as f32,width,1.0,GOLD);}}c.text(38.0,y,name,if i==u.tab as usize{GOLD}else{TEXT},20.0);}
  c.hint(18.0,420.0,"LB / RB",CYAN,16.0);c.text(18.0,445.0,"Switch section",MUTED,14.0);c.button(3,18.0,656.0,"Select");c.button(2,18.0,685.0,"Back");c.button(1,18.0,714.0,"Search");
@@ -245,7 +245,7 @@ pub(super) fn quick_map(u:&mut Ui){
  let c=Canvas{d:imgui::DrawList::foreground(),f:super::game_ui::font(),s:scale,x:(size.x-960.0*scale)/2.0,y:(size.y-height*scale)/2.0,click:desktop::pointer(u),desktop:u.desktop,action:Cell::new(Action::None)};
  c.rect(0.0,0.0,960.0,height,0xf525241c);
  let name=u.current.and_then(|id|world::LOCATIONS.get(id)).map(|l|l.name).unwrap_or("Gathering");
- c.text(18.0,15.0,name,CYAN,23.0);c.text(720.0,20.0,["LR","HR","GR"][u.rank.min(2)as usize],TEXT,16.0);c.hint(795.0,20.0,if u.desktop{"Tab  Full compendium"}else{"X  Full compendium"},MUTED,14.0);c.hit(785.0,8.0,165.0,38.0,Action::QuickExpand);
+ c.text(18.0,15.0,name,CYAN,23.0);c.text(720.0,20.0,["LR","HR","GR"][u.rank.min(2)as usize],TEXT,16.0);c.hint(795.0,20.0,if u.desktop{"Tab  Full utility"}else{"X  Full utility"},MUTED,14.0);c.hit(785.0,8.0,165.0,38.0,Action::QuickExpand);
  if u.zone_count==0{c.text(20.0,85.0,"No gathering items for this quest map.",MUTED,18.0);}
  for area in start..(start+2).min(u.zone_count){let x=14.0+(area-start)as f32*472.0;
   c.card(x,59.0,460.0,body,area==u.zone);c.text(x+12.0,71.0,world::ZONES[u.zones[area]as usize],CYAN,18.0);c.hit(x,59.0,460.0,37.0,Action::Zone(area));
@@ -269,7 +269,7 @@ pub(super) fn gather_filters(u:&mut Ui){
  let c=Canvas{d:imgui::DrawList::foreground(),f:super::game_ui::font(),s,x:(size.x-700.0*s)/2.0,y:(size.y-590.0*s)/2.0,click:desktop::pointer(u),desktop:u.desktop,action:Cell::new(Action::None)};
  c.rect(0.0,0.0,700.0,590.0,BG);c.frame(0,0.0,0.0,700.0,590.0,u32::MAX);
  let p=c.v(8.0,6.0);super::game_ui::title(&c.d,[p.x,p.y,684.0*s,38.0*s]);
- c.text(28.0,14.0,"Compendium",TEXT,23.0);c.hint(608.0,17.0,"A: close",TEXT,16.0);c.hit(594.0,6.0,96.0,35.0,Action::Back);
+ c.text(28.0,14.0,"MHGU Utility",TEXT,23.0);c.hint(608.0,17.0,"A: close",TEXT,16.0);c.hit(594.0,6.0,96.0,35.0,Action::Back);
  let state=menu::state();let mut title=Text::new();if let Some((loc,rank))=super::context::location(){let _=write!(title,"{} - {}",world::LOCATIONS[loc].name,["LR","HR","GR"][rank as usize]);}c.text(25.0,57.0,title.str(),GOLD,20.0);
  let checked=state.catalogue.entries().iter().filter(|e|state.selection.selected(e.category,e.item)).count();
  let mut count=Text::new();let _=write!(count,"{} / {} selected",checked,state.catalogue.entries().len());c.text(25.0,90.0,count.str(),MUTED,16.0);c.text(494.0,90.0,"Chance per gather",MUTED,16.0);

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create a deterministic, allowlisted Hunter's Compendium runtime archive."""
+"""Create a deterministic, allowlisted MHGU Utility runtime archive."""
 import argparse
 import hashlib
 from pathlib import Path
