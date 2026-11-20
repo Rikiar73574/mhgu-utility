@@ -36,8 +36,8 @@ const NAMES:[&[u8];5]=[b"_ZN2nn3hid12GetNpadStateEPNS0_16NpadFullKeyStateERKj",b
 // All five write buttons at +0/+4 and sticks at +8..+0x14, plus a halfword
 // at +0x18. Connection metadata lives on the receiver and stays untouched.
 #[repr(C)]struct Hook([u32;19]);
-static mut HOOKS:[Hook;5]=[const{Hook([0;19])};5];
-static mut NATIVE:[u32;5]=[0;5];
+static mut HOOKS:[Hook;6]=[const{Hook([0;19])};6];
+static mut NATIVE:[u32;6]=[0;6];
 unsafe extern "C"{#[link_name="forge_hook_create"]fn hook(out:*mut Hook,target:u32,detour:u32,original:*mut u32)->*mut Hook;}
 unsafe fn native(i:usize,object:u32,arg:u32,id:*const u32,out:*mut u8){unsafe{
  let before=*POLLS.0.get();let was_capture=(*GATE.0.get()).capturing();
@@ -61,6 +61,20 @@ unsafe extern "C" fn native_dual(a:u32,b:u32,c:*const u32,d:*mut u8){unsafe{nati
 unsafe extern "C" fn native_left(a:u32,b:u32,c:*const u32,d:*mut u8){unsafe{native(2,a,b,c,d)}}
 unsafe extern "C" fn native_right(a:u32,b:u32,c:*const u32,d:*mut u8){unsafe{native(3,a,b,c,d)}}
 unsafe extern "C" fn native_handheld(a:u32,b:u32,c:*const u32,d:*mut u8){unsafe{native(4,a,b,c,d)}}
+// The game's sPad remaps the platform devices into separate gameplay and
+// menu states, with its own repeat masks. Capture after that final update.
+unsafe extern "C" fn processed(object:u32){unsafe{
+ let original:unsafe extern "C" fn(u32)=core::mem::transmute(NATIVE[5]);
+ let capture=ready()&&(*GATE.0.get()).capturing();original(object);
+ if object!=0&&ready()&&(capture||(*GATE.0.get()).capturing()){
+  for off in [0x6b98,0x6bf0]{
+   // Keep each mapper's vtable and mapping configuration intact.
+   ptr::write_bytes((object+off+4)as *mut u8,0,16);
+   ptr::write_bytes((object+off+0x28)as *mut u8,0,0x1c);
+  }
+  ptr::write_bytes((object+0x6c34)as *mut u8,0,16);
+ }
+}}
 // Known 1.4.0 MOD0 location is checked before dereferencing its dynamic tables.
 pub fn install()->bool{unsafe{
  let base=forge::mem::text_addr();
@@ -86,8 +100,12 @@ pub fn install()->bool{unsafe{
   let entry=(first==0xe92d48f0&&second==0xe24dd028)||(first==0xe51ff004&&second!=0&&second&3==0);
   !entry||read(at+8)!=0xe1a0700d||read(at+12)!=0xe1a06000
  }){return false;}
+ // Native mapped-pad update. Its gameplay and menu mappers have separate
+ // action masks; neither controller conversion alone covers both.
+ if read(0x3ddf1c)!=0xe92d4070||read(0x3ddf1c+4)!=0xe1a04000{return false;}
  let native_detours=[native_full as *const c_void,native_dual as *const c_void,native_left as *const c_void,native_right as *const c_void,native_handheld as *const c_void];
  for j in 0..5{if hook(&raw mut HOOKS[j],base+offsets[j],native_detours[j]as u32,&raw mut NATIVE[j]).is_null()||NATIVE[j]==0{return false;}}
+ if hook(&raw mut HOOKS[5],base+0x3ddf1c,processed as *const c_void as u32,&raw mut NATIVE[5]).is_null()||NATIVE[5]==0{return false;}
  let detours=[full as *const c_void,dual as *const c_void,left as *const c_void,right as *const c_void,handheld as *const c_void];
  for j in 0..5 {ptr::write_volatile((base+slots[j]) as *mut u32,detours[j] as u32);}
  READY.store(true,core::sync::atomic::Ordering::Relaxed);true
