@@ -553,7 +553,8 @@ impl Solver {
 }
 
 /// Bounded, allocation-free spare-slot and decoration-swap improvement. Each tick evaluates at most
-/// `budget` jewel/bin pairs; each pass scans the complete supplied jewel catalog.
+/// `budget` moves; each pass scans jewels, single placements/swaps and bundles
+/// across free sockets. Bundles can cross an activation threshold in one move.
 /// The caller evaluates every skill tree and rejects penalties or broken goals.
 /// Each result uses at most 8192 edges and 42 improving passes, returning search
 /// time to other equipment combinations. This is not an optimality proof.
@@ -610,20 +611,37 @@ impl DecorationRefiner {
             }
             let jewel = self.jewel;
             let bin = self.bin;
-            self.bin += 1;
-            if self.bin == BINS + self.current.jewel_count as usize { self.bin = 0; self.jewel += 1; }
             let cost = costs(jewel);
+            let packs = if cost == 0 { 0 } else {
+                self.remaining.iter().map(|&slots| usize::from(slots / cost)).sum::<usize>()
+                    .min(MAX_JEWELS - self.current.jewel_count as usize)
+            };
+            let singles = BINS + self.current.jewel_count as usize;
+            self.bin += 1;
+            if self.bin == singles + packs.saturating_sub(1) { self.bin = 0; self.jewel += 1; }
             if cost == 0 { continue; }
             let mut candidate = self.current;
             if bin < BINS {
                 if cost > self.remaining[bin] || candidate.jewel_count as usize == MAX_JEWELS { continue; }
                 candidate.jewels[candidate.jewel_count as usize] = Placement { jewel, gear: bin as u8 };
                 candidate.jewel_count += 1;
-            } else {
+            } else if bin < singles {
                 let at = bin - BINS;
                 let old = candidate.jewels[at];
                 if cost > self.remaining[old.gear as usize] + costs(old.jewel) { continue; }
                 candidate.jewels[at] = Placement { jewel, gear: old.gear };
+            } else {
+                // Evaluate every useful prefix, not only a full-socket fill:
+                // reaching one threshold can leave room for a second skill.
+                let mut left = bin - singles + 2;
+                for gear in 0..BINS {
+                    let count = usize::from(self.remaining[gear] / cost).min(left);
+                    for _ in 0..count {
+                        candidate.jewels[candidate.jewel_count as usize] = Placement { jewel, gear: gear as u8 };
+                        candidate.jewel_count += 1;
+                    }
+                    left -= count;
+                }
             }
             if let Some(score) = evaluate(&mut candidate) {
                 if score < self.best_score { self.best = candidate; self.best_score = score; }

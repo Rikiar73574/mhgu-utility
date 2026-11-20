@@ -392,3 +392,27 @@ fn refinement_tries_all_seven_bins_after_requested_skill_is_already_met(){
  assert_eq!(result.jewel_count,7);
  for gear in 0..7{assert_eq!(result.jewels[..7].iter().filter(|p|p.gear==gear).count(),1);}
 }
+
+#[test]
+fn bundled_jewels_activate_a_bonus_instead_of_chasing_unreachable_guard(){
+ // Replay the live result's trap: Attack L already met, Guard +2 and five
+ // separate sockets. Five Guard +1 jewels cannot activate Guard; five
+ // Sharpener +2 jewels can activate another skill. One-step scoring picks Guard.
+ let seed=Solution{armor:[0;5],charm:1,jewels:[Placement::default();MAX_JEWELS],jewel_count:0,totals:[21,2,0,0,0,0]};
+ let capacity=[1,1,0,1,1,1,0];
+ fn score(s:&mut Solution)->Option<[u32;10]>{
+  let(mut guard,mut sharp)=(2,0);
+  for p in &s.jewels[..s.jewel_count as usize]{if p.jewel==0{guard+=1;}else{sharp+=2;}}
+  s.totals=[21,guard,sharp,0,0,0];
+  let active=1+u32::from(guard>=10)+u32::from(sharp>=10);
+  let near=guard.min(10).max(sharp.min(10))as u32;
+  Some([u32::MAX-active,0,0,u32::MAX-near,u32::MAX-(guard+sharp)as u32,s.jewel_count as u32,0,0,0,0])
+ }
+ for budget in [1,32,256]{
+  let mut initial=seed;let mut refine=DecorationRefiner::new(seed,capacity,|_|1,score(&mut initial).unwrap()).unwrap();
+  let result=loop{let before=refine.work_done;let(s,done)=refine.tick(2,|_|1,score,budget);assert!(refine.work_done-before<=u64::from(budget));if done{break s;}};
+  assert_eq!(result.totals[0],21);assert!(result.totals[2]>=10,"must try a complete Sharpener bundle");
+  assert_eq!(result.jewel_count,5);assert_eq!(result.totals[1],2);
+  for gear in 0..7{assert!(result.jewels[..5].iter().filter(|p|p.gear==gear as u8).count()<=capacity[gear]as usize);}
+ }
+}

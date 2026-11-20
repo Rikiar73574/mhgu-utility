@@ -51,7 +51,8 @@ Set Builder provides skill-based armor searches, automatic character settings, e
 per-piece decoration placements, and an action to wishlist missing armor.
 Missing crafting stock does not exclude armor. Verified availability is preferred
 between builds with equal skill strength; unconfirmed unlocks remain explicitly
-labelled. Every result gets a bounded jewel-refinement pass, including sets
+labelled. Every result gets a bounded jewel-refinement pass that tries single placements,
+swaps and multi-jewel bundles, including sets
 that already meet the requested skills. Results always rank by most positive
 activated skills first; there is no sort setting. Refinement preserves requested
 skills and does not add penalties. Empty slots can remain when no useful
