@@ -3,8 +3,6 @@
 A standalone Forge plugin for MHGURecomp 0.15.4 or later and MHGU 1.4.0. Browse items, weapon
 upgrade trees, armor pieces and sets, crafting materials, gathering and monster
 reward sources, and a persistent wishlist.
-Version 0.3.0 adds eligible unlocked quest suggestions, native MHGU frames and
-lettering, inline keyboard editing, and full armor browsing/wishlists.
 The game continues while the browser is open. Armor details include a native
 full-set model preview using installed texture replacements. Right stick rotates
 the preview; equipped armor and stats stay unchanged.
@@ -15,6 +13,49 @@ the preview; equipped armor and stats stay unchanged.
 [Build from source](docs/BUILD.md)
 
 [Screenshots](docs/SCREENSHOTS.md)
+
+## Features
+
+- **Item browser:** searchable categories, item icons, descriptions, and acquisition
+  sources grouped by map, monster or quest. Sources show rank, quantities, drop
+  rates, and carve, capture or break conditions where available.
+- **Weapon trees:** connected upgrade trees for each weapon type, rarity ordering,
+  weapon stats, sharpness, crafting recipes, and clickable material sources.
+- **Armor browser:** browse sets or individual pieces; filter by rank, hunter type
+  and gender; inspect defense, resistances, slots, skills and crafting materials.
+- **Armor previews:** rotating native full-set models using the game's assets and
+  installed texture replacements, where a reliable model mapping is available.
+- **Weapon and armor wishlists:** save individual recipes or complete armor sets,
+  inspect materials directly, and remove entries from the wishlist. Supported
+  weapon-upgrade screens also provide an in-game wishlist shortcut.
+- **Live material counts:** combine item-box and pouch stock, update shortages as
+  items are gathered, and keep a compact passive wishlist tracker visible in hunts.
+- **Quest planning:** suggest eligible unlocked quests covering wanted materials
+  through gathering, monster drops and rewards. Prowler quests are excluded by
+  default and can be enabled in settings.
+- **Location browser:** map artwork and minimaps, a shared LR/HR/GR selector, and
+  gathering items grouped by area and gathering type.
+- **Gathering map filters:** native Start-menu entry, category and item checkboxes,
+  drop-rate ranges, and matching gathering-point markers across the quest map.
+  Grey and gold mining spots use distinct native pickaxe icons. Markers stay at
+  their map positions and work alongside Map Assist.
+- **Controller, mouse and keyboard:** MHGU-style frames and lettering, controller
+  navigation, direct keyboard search, text editing and clipboard shortcuts, plus
+  an optional on-screen controller keyboard and adjustable interface size.
+- **Standalone operation:** no HuntLog backend, browser or external service is
+  required during gameplay. Wishlist and settings persist in separate files.
+
+### Set Builder preview
+
+The [Set Builder branch](https://github.com/Rikiar73574/mhgu-utility/tree/feat/set-builder)
+adds skill-based armor searches, automatic character settings, every owned charm,
+per-piece decoration placements, and an action to wishlist missing armor.
+Missing crafting stock does not exclude armor. Verified availability is preferred;
+unconfirmed unlocks remain explicitly labelled. Searches can be paused and stop
+after 24 distinct results. Mixed-set model previews are not included yet.
+**This preview is not included in the latest published release.**
+
+## Controls and details
 
 Item sources include all monster drops and quest rewards available in the local
 MHGenDatabase, with LR/HR/GR, carve/capture/break conditions, reward slots,
