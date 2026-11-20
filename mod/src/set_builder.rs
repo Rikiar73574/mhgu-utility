@@ -10,10 +10,10 @@ pub struct State{
  cached:Option<solver::Solution>,ranks:[[u32;9];LIMIT],pause_at:u64,
  pub progress:usize,pub armor_count:[u16;5],pub jewel_count:usize,
  armor_ids:[[u16;1200];5],jewel_ids:[u16;256],owned:[u32;player::MAX_EQUIPMENT],owned_count:usize,
- solver:Option<solver::Solver>,bonus:Option<solver::DecorationRefiner>,
+ solver:Option<solver::Solver>,bonus:Option<solver::DecorationRefiner>,bonus_penalties:u32,
 }
 struct Local(UnsafeCell<State>);unsafe impl Sync for Local{}
-static STATE:Local=Local(UnsafeCell::new(State{phase:Phase::Choose,status:"Select skills, then search your available equipment.",goals:[usize::MAX;6],goal_count:0,show_results:false,result:0,piece:0,jewels:false,jewel_row:0,results:[None;LIMIT],count:0,visited:0,skills:false,skill_row:0,skill_rows:[0;206],skill_count:0,active_count:0,totals:skills::Totals{points:[0;206],present:[false;206]},cached:None,ranks:[[u32::MAX;9];LIMIT],pause_at:250_000,progress:0,armor_count:[0;5],jewel_count:0,armor_ids:[[0;1200];5],jewel_ids:[0;256],owned:[0;player::MAX_EQUIPMENT],owned_count:0,solver:None,bonus:None}));
+static STATE:Local=Local(UnsafeCell::new(State{phase:Phase::Choose,status:"Select skills, then search your available equipment.",goals:[usize::MAX;6],goal_count:0,show_results:false,result:0,piece:0,jewels:false,jewel_row:0,results:[None;LIMIT],count:0,visited:0,skills:false,skill_row:0,skill_rows:[0;206],skill_count:0,active_count:0,totals:skills::Totals{points:[0;206],present:[false;206]},cached:None,ranks:[[u32::MAX;9];LIMIT],pause_at:250_000,progress:0,armor_count:[0;5],jewel_count:0,armor_ids:[[0;1200];5],jewel_ids:[0;256],owned:[0;player::MAX_EQUIPMENT],owned_count:0,solver:None,bonus:None,bonus_penalties:0}));
 pub fn state()->&'static State{unsafe{&*STATE.0.get()}}
 fn mutable()->&'static mut State{unsafe{&mut*STATE.0.get()}}
 pub fn open(u:&mut Ui){u.tab=5;u.builder=true;u.selected=0;u.len=0;u.detail=usize::MAX;u.dirty=true;let s=mutable();s.show_results=false;capture(s);}
@@ -69,7 +69,7 @@ pub fn tick(){let s=mutable();if !s.show_results{return;}if !crate::set_unlock::
  if s.phase!=Phase::Searching{return;}
  if let Some(mut bonus)=s.bonus.take(){
   let before=bonus.work_done;
-  let (found,done)=bonus.tick(s.jewel_count as u32,|j|data::DECO[(s.jewel_ids[j as usize]&0x7fff)as usize].slots,|candidate|bonus_score(s,candidate),32);
+  let (found,done)=bonus.tick(s.jewel_count as u32,|j|data::DECO[(s.jewel_ids[j as usize]&0x7fff)as usize].slots,|candidate|bonus_score(s,candidate).filter(|score|score[1]<=s.bonus_penalties),32);
   s.visited+=bonus.work_done-before;
   if done{let score=rank(s,&found);retain(s,found,score);s.status="Searching other armor and charm combinations...";}
   else{s.bonus=Some(bonus);}
@@ -79,14 +79,14 @@ pub fn tick(){let s=mutable();if !s.show_results{return;}if !crate::set_unlock::
  match result{solver::Tick::Working=>{},solver::Tick::Found(found)=>{
   let mut found=found;
   if let Some(score)=bonus_score(s,&mut found){
-   s.status="Refining decorations for this build...";
+   s.status="Refining decorations for this build...";s.bonus_penalties=score[1];
    let (capacity,_)=slots_for(s,&found);
    s.bonus=solver::DecorationRefiner::new(found,capacity,|j|data::DECO[(s.jewel_ids[j as usize]&0x7fff)as usize].slots,score);
    if let Some(engine)=s.solver.as_mut(){engine.next_equipment();}
    if s.visited>=s.pause_at{s.phase=Phase::Paused;s.status="Search budget reached. Best builds so far; Y continues.";}return;
   }
 
- },solver::Tick::Complete=>{s.phase=Phase::Complete;s.status=if s.count==0{"Search complete: no matching build."}else{"Search complete. Best builds ranked by fit and slots."};},solver::Tick::Cancelled=>{s.phase=Phase::Paused;s.status="Search paused.";},solver::Tick::InvalidCatalog=>{s.phase=Phase::Unavailable;s.status="The equipment snapshot or search data is invalid.";}}
+ },solver::Tick::Complete=>{s.phase=Phase::Complete;s.status=if s.count==0{"Search complete: no matching build."}else{"Search complete. Ranked by activated skills."};},solver::Tick::Cancelled=>{s.phase=Phase::Paused;s.status="Search paused.";},solver::Tick::InvalidCatalog=>{s.phase=Phase::Unavailable;s.status="The equipment snapshot or search data is invalid.";}}
  if s.phase==Phase::Searching&&s.visited>=s.pause_at{s.phase=Phase::Paused;s.status="Search budget reached. Best builds so far; Y continues.";}
 
 }
@@ -127,11 +127,11 @@ fn evaluate(s:&State,r:&solver::Solution)->skills::Totals{
 fn slots_for(s:&State,r:&solver::Solution)->([u8;7],[u8;7]){let mut capacity=[0;7];let mut used=[0;7];for slot in 0..5{capacity[slot]=armor::ARMOR[id(s,r,slot)].slots;}if r.charm>0{capacity[5]=player::snapshot().charms[r.charm as usize-1].slots;}capacity[6]=player::snapshot().weapon_slots.unwrap_or(0);for p in &r.jewels[..r.jewel_count as usize]{used[p.gear as usize]+=data::DECO[(s.jewel_ids[p.jewel as usize]&0x7fff)as usize].slots;}(capacity,used)}
 pub fn slots()->([u8;7],[u8;7]){let s=state();s.results.get(s.result).filter(|_|s.result<s.count).and_then(|r|r.as_ref()).map(|r|slots_for(s,r)).unwrap_or(([0;7],[0;7]))}
 fn rank(s:&State,r:&solver::Solution)->[u32;9]{rank_with_totals(s,r,&evaluate(s,r))}
-// Prefer stronger skills, then verified availability. Unknown source coverage
+// Always rank by positive activated skill count, then penalties and strength. Unknown source coverage
 // must not veto every jewel; those builds keep the explicit unverified label.
 fn rank_with_totals(s:&State,r:&solver::Solution,all:&skills::Totals)->[u32;9]{let mut unknown=0;let mut missing=0;let mut defense=0;for slot in 0..5{unknown+=u32::from(s.armor_ids[slot][r.armor[slot]as usize]&0x8000!=0);missing+=u32::from(!owns_in(s,id(s,r,slot)));defense+=u32::from(armor::ARMOR[id(s,r,slot)].defense);}for p in &r.jewels[..r.jewel_count as usize]{unknown+=u32::from(s.jewel_ids[p.jewel as usize]&0x8000!=0);}
- let (negative,active,tiers,_,_,excess)=quality(all);
- let(c,u)=slots_for(s,r);let total=c.iter().map(|&v|u32::from(v)).sum::<u32>();let used=u.iter().map(|&v|u32::from(v)).sum::<u32>();[negative,u32::MAX-active,u32::MAX-tiers,unknown,excess,used,21-(total-used),missing,65535-defense]
+ let (negative,active,tiers,_,_,excess)=quality(all);let priority=skills::skill_rank(active,negative,tiers);
+ let(c,u)=slots_for(s,r);let total=c.iter().map(|&v|u32::from(v)).sum::<u32>();let used=u.iter().map(|&v|u32::from(v)).sum::<u32>();[priority[0],priority[1],priority[2],unknown,excess,used,21-(total-used),missing,65535-defense]
 }
 /// Count only the strongest activation per tree; intermediate points guide the
 /// bounded spare-slot search but never outrank an actual active skill.
@@ -150,8 +150,8 @@ fn quality(all:&skills::Totals)->(u32,u32,u32,u32,u32,u32){
 fn bonus_score(s:&State,r:&mut solver::Solution)->Option<[u32;10]>{
  let all=evaluate(s,r);
  for i in 0..s.goal_count{let a=&data::ACTIVATIONS[s.goals[i]];let p=all.points[a.tree as usize];if a.points>0&&p<i16::from(a.points)||a.points<0&&p>i16::from(a.points){return None;}r.totals[i]=i32::from(p);}
- let (negative,active,tiers,near,sum,excess)=quality(&all);let ranked=rank_with_totals(s,r,&all);
- Some([negative,u32::MAX-active,u32::MAX-tiers,u32::MAX-near,u32::MAX-sum,ranked[3],excess,ranked[5],ranked[6],ranked[8]])
+ let (negative,active,tiers,near,sum,excess)=quality(&all);let priority=skills::skill_rank(active,negative,tiers);let ranked=rank_with_totals(s,r,&all);
+ Some([priority[0],priority[1],priority[2],u32::MAX-near,u32::MAX-sum,ranked[3],excess,ranked[5],ranked[6],ranked[8]])
 }
 
 fn retain(s:&mut State,r:solver::Solution,score:[u32;9]){
@@ -163,7 +163,7 @@ fn active(tree:u8,p:i16)->bool{activation(tree,p).is_some()||tree==data::TORSO_U
 pub fn skill_name(tree:u8)->&'static str{let p=state().totals.points[tree as usize];activation(tree,p).map(|i|data::ACTIVATIONS[i].name).unwrap_or(if tree==data::TORSO_UP&&p>0{"Torso Up"}else{"Not active"})}
 pub fn target(tree:u8)->Option<i8>{let s=state();s.goals[..s.goal_count].iter().map(|&i|&data::ACTIVATIONS[i]).find(|a|a.tree==tree).map(|a|a.points)}
 pub fn refresh_summary(){let s=mutable();let Some(r)=s.results.get(s.result).filter(|_|s.result<s.count).copied().flatten()else{return;};if s.cached==Some(r){return;}s.totals=evaluate(s,&r);s.cached=Some(r);s.skill_count=0;s.active_count=0;
- for tree in 1..206{if s.totals.present[tree]&&s.totals.points[tree]!=0{s.skill_rows[s.skill_count]=tree as u8;s.skill_count+=1;if active(tree as u8,s.totals.points[tree]){s.active_count+=1;}}}
+ for tree in 1..206{if s.totals.present[tree]&&s.totals.points[tree]!=0{s.skill_rows[s.skill_count]=tree as u8;s.skill_count+=1;if s.totals.points[tree]>0&&activation(tree as u8,s.totals.points[tree]).is_some(){s.active_count+=1;}}}
  let goals=s.goals;let n=s.goal_count;let points=s.totals.points;s.skill_rows[..s.skill_count].sort_unstable_by_key(|&tree|{let requested=goals[..n].iter().any(|&i|data::ACTIVATIONS[i].tree==tree);let p=points[tree as usize];(if requested{0}else if active(tree,p)&&p<0{1}else if active(tree,p){2}else{3},tree)});s.skill_row=s.skill_row.min(s.skill_count.saturating_sub(1));
 }
 pub fn show_skills(){browse();refresh_summary();let s=mutable();s.skills=true;s.skill_row=0;}

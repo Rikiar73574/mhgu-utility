@@ -168,3 +168,10 @@ fn higher_activated_tiers_are_useful_not_wasted_points() {
     assert_eq!(tier_score(25, 10, tiers.into_iter()), (10, 5));
     assert_eq!(tier_score(20, 20, tiers.into_iter()), (0, 0));
 }
+
+#[test]
+fn fixed_ranking_puts_more_activated_skills_before_other_preferences(){
+    assert!(skill_rank(3,1,30)<skill_rank(2,0,40),"three positive skills outrank two, regardless of tier strength");
+    assert!(skill_rank(3,0,30)<skill_rank(3,1,45),"equal skill counts prefer fewer penalties");
+    assert!(skill_rank(3,0,45)<skill_rank(3,0,30),"equal counts and penalties prefer stronger tiers");
+}

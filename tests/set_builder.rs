@@ -53,9 +53,10 @@ fn production_adapter_fills_spare_slots_keeps_goals_charms_and_exposes_l3(){
  for _ in 0..20_000{set_builder::tick();if matches!(set_builder::state().phase,set_builder::Phase::Complete){break;}}
  let s=set_builder::state();assert!(matches!(s.phase,set_builder::Phase::Complete));assert!(s.count>=3);
  // This checks actual adapter quality, native evaluation and result retention.
- let mut saw_bonus=false;let mut saw_late_charm=false;let mut saw_upgrade=false;
+ let mut saw_bonus=false;let mut saw_late_charm=false;let mut saw_upgrade=false;let mut previous=usize::MAX;
  for result in 0..s.count{set_builder::select_result(result);set_builder::refresh_summary();let s=set_builder::state();let r=s.results[s.result].unwrap();
   assert!(s.totals.points[1]>=10);assert!(s.totals.points[3]>-10);
+  assert!(s.active_count<=previous,"results must always rank by most active skills");previous=s.active_count;
   saw_bonus|=s.totals.points[2]>=10;saw_upgrade|=s.totals.points[1]>=15;saw_late_charm|=r.charm==2;
   let(c,u)=set_builder::slots();assert!((0..7).all(|i|u[i]<=c[i]));
  }

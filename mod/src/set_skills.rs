@@ -90,3 +90,9 @@ pub fn tier_score(points:i16,minimum:i16,thresholds:impl Iterator<Item=i16>)->(u
  let achieved=thresholds.filter(|&p|p>0&&p<=points).max().unwrap_or(minimum);
  ((achieved-minimum).max(0)as u16,(points-achieved).max(0)as u16)
 }
+
+/// Fixed result order: useful activations, penalties, then activation strength.
+/// Lower keys rank first. Each tree contributes at most one positive activation.
+pub fn skill_rank(active:u32,penalties:u32,strength:u32)->[u32;3]{
+    [u32::MAX-active,penalties,u32::MAX-strength]
+}

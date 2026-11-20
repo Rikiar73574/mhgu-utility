@@ -380,3 +380,15 @@ fn decoration_refinement_yields_equipment_search_within_fixed_work_limit(){
  }
  panic!("refinement did not yield");
 }
+
+#[test]
+fn refinement_tries_all_seven_bins_after_requested_skill_is_already_met(){
+ let seed=Solution{armor:[0;5],charm:0,jewels:[Placement::default();MAX_JEWELS],jewel_count:0,totals:[20,0,0,0,0,0]};
+ let mut refiner=DecorationRefiner::new(seed,[1;7],|_|1,[u32::MAX,0,0,0,0,0,0,0,0,0]).unwrap();
+ let result=loop{let(s,done)=refiner.tick(1,|_|1,|s|{
+  assert_eq!(s.totals[0],20,"requested Attack L must stay intact");
+  Some([u32::MAX-u32::from(s.jewel_count),0,0,0,0,0,0,0,0,0])
+ },1);if done{break s;}};
+ assert_eq!(result.jewel_count,7);
+ for gear in 0..7{assert_eq!(result.jewels[..7].iter().filter(|p|p.gear==gear).count(),1);}
+}
