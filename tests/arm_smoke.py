@@ -61,6 +61,11 @@ def callback(uc,at,size,ctx):
    uc.mem_write(r0,struct.pack('<f',touch[0]));uc.mem_write(r1,struct.pack('<f',touch[1]));out=1
  elif name=='igGetIO_Nil':out=IO
  elif name in ['igGetForegroundDrawList_Nil','igGetFont']:out=HEAP+0x2000
+ elif name=='forge_hook_create':
+  # Native entry hooks are available in the recomp; retain an inert original
+  # here because this fixture drives the HID import boundary directly.
+  original=STUB+0x1800;u.mem_write(original,bytes.fromhex('1eff2fe1'))
+  put(uc.reg_read(UC_ARM_REG_R3),original);out=r0
  elif name=='HID':
   uc.mem_write(r0,bytes(40));put(r0+8,raw);put(r0+16,1000);put(r0+32,1)
  elif name=='ImDrawList_AddText_FontPtr':

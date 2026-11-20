@@ -23,3 +23,25 @@ impl Gate{
  #[test] fn normal_start_replayed_on_release(){let mut g=Gate::new();assert_eq!(g.filter(START),0);assert_eq!(g.filter(START),0);assert_eq!(g.filter(0),START);assert_eq!(g.filter(0),0);}
  #[test] fn close_drains_buttons(){let mut g=Gate::new();g.open=true;g.close();assert_eq!(g.filter(2),0);g.filter(0);assert_eq!(g.filter(2),2);}
 }
+
+/// Native game pad bits differ from nn::hid. Preserve chord identity and
+/// whether any other action remains held, including the upper button word.
+pub fn native_buttons(low:u32,high:u32)->u32{
+ (if low&8!=0{START}else{0})|(if low&0x80!=0{LEFT}else{0})|
+ (if low&!0x88!=0||high!=0{1}else{0})
+}
+
+#[cfg(test)]mod native_tests{
+ use super::*;
+ #[test]fn every_native_button_bit_is_seen(){
+  for bit in 0..32{let raw=native_buttons(1<<bit,0);assert_ne!(raw,0);assert_eq!(raw&START!=0,bit==3);assert_eq!(raw&LEFT!=0,bit==7);}
+  for bit in 0..32{assert_ne!(native_buttons(0,1<<bit),0);}
+ }
+ #[test]fn native_chord_and_close_drain(){
+  let mut g=Gate::new();assert_eq!(g.filter(native_buttons(8,0)),0);
+  assert_eq!(g.filter(native_buttons(0x88,0)),0);assert!(g.open);
+  for bit in 0..32{assert_eq!(g.filter(native_buttons(1<<bit,0)),0);assert!(g.open);}
+  g.close();assert_eq!(g.filter(native_buttons(0,0x80000000)),0);assert!(g.capturing());
+  assert_eq!(g.filter(0),0);assert!(!g.capturing());assert_ne!(g.filter(native_buttons(0x1000,0)),0);
+ }
+}
