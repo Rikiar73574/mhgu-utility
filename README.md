@@ -87,6 +87,8 @@ quantities and rates. Items can list both monster drops and quest rewards.
   your character's gender, hunter type, equipped weapon slots and progression.
   It includes unowned armor without requiring crafting stock, and checks every
   owned charm. Requested skills are minimums, so higher tiers remain eligible.
+  Focused seed searches explore bonus skill combinations before the broad search,
+  so one family of similar builds cannot consume the entire search window.
   Spare slots are refined for bonus skills using available decorations, without
   breaking the requested skills. This bounded search does not guarantee the best
   possible combination. Choose skills with B, then Y to search or pause.
@@ -101,7 +103,8 @@ quantities and rates. Items can list both monster drops and quest rewards.
   Verified equipment is tried first. Results with incomplete acquisition-source coverage are explicitly marked
   **availability unverified**; these may include armor whose unlock cannot yet be confirmed. Unindexed acquisition paths are never treated as proof that armor is locked. The search keeps the best 24 builds found and continues improving their fit,
   preferring fewer wasted skill points, fewer gem slots used and more free slots.
-  It pauses at a bounded work budget; Y continues. These are best-found results,
+  It pauses after 60 seconds or five new active-skill combinations; Y continues
+  from the same position. These are best-found results,
   not a claim of global optimality. Full mixed-set
   previews are not yet part of the builder.
 - Xbox B selects; Xbox A goes back. LB/RB changes section. Game buttons and

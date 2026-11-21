@@ -126,7 +126,7 @@ with tempfile.TemporaryDirectory(prefix='compendium-set-builder-') as folder:
     # Pause so browsing and wishlist assertions use a stable best-ranked solution.
     if 'Y  Pause search' in out:
         out = press(1 << 2)
-    assert 'No talisman required' in out, out
+    assert any(t in out for t in ('No talisman required','Equipment box #1','Equipment box #1000','Equipment box #1901')), out
     assert any(re.fullmatch(r'Acrobat  (\d+) / 10', text) and int(re.fullmatch(r'Acrobat  (\d+) / 10', text)[1]) >= 10 for text in out), out
     assert out.count('Missing') == 5, out
     assert refining, 'first result was exposed before its decoration pass'

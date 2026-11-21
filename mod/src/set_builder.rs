@@ -1,6 +1,7 @@
 //! Set Builder adapter: read-only progression/equipment, resumable search and wishlist.
 use core::cell::UnsafeCell;
 use crate::{armor_data as armor,set_data as data,set_solver as solver,set_player as player,set_skills as skills,Ui};
+use crate::set_solver::Catalog as _;
 pub const LIMIT:usize=24;
 #[derive(Clone,Copy,PartialEq,Eq)]pub enum Phase{Choose,Preparing,Searching,Paused,Complete,Unavailable}
 pub struct State{
@@ -8,17 +9,18 @@ pub struct State{
  pub result:usize,pub piece:usize,pub jewels:bool,pub jewel_row:usize,pub results:[Option<solver::Solution>;LIMIT],pub count:usize,pub visited:u64,
  pub effect:Option<usize>,pub effect_line:usize,pub effect_lines:usize,pub skills:bool,pub skill_row:usize,pub skill_rows:[u8;206],pub skill_count:usize,pub active_count:usize,pub totals:skills::Totals,
  cached:Option<solver::Solution>,ranks:[[u32;9];LIMIT],pub search:skills::SearchBudget,
+ focus:Option<usize>,focus_mask:crate::set_focus::Mask,focus_targets:[(u16,i32,i32);206],focus_scan:usize,focus_count:usize,focus_task:usize,focus_found:u8,
  pub progress:usize,pub armor_count:[u16;5],pub jewel_count:usize,
  armor_ids:[[u16;1200];5],jewel_ids:[u16;256],owned:[u32;player::MAX_EQUIPMENT],owned_count:usize,
  solver:Option<solver::Solver>,bonus:Option<solver::DecorationRefiner>,bonus_penalties:u32,
 }
 struct Local(UnsafeCell<State>);unsafe impl Sync for Local{}
-static STATE:Local=Local(UnsafeCell::new(State{phase:Phase::Choose,status:"Select skills, then search your available equipment.",goals:[usize::MAX;6],goal_count:0,show_results:false,result:0,piece:0,jewels:false,jewel_row:0,results:[None;LIMIT],count:0,visited:0,effect:None,effect_line:0,effect_lines:0,skills:false,skill_row:0,skill_rows:[0;206],skill_count:0,active_count:0,totals:skills::Totals{points:[0;206],present:[false;206]},cached:None,ranks:[[u32::MAX;9];LIMIT],search:skills::SearchBudget::new(),progress:0,armor_count:[0;5],jewel_count:0,armor_ids:[[0;1200];5],jewel_ids:[0;256],owned:[0;player::MAX_EQUIPMENT],owned_count:0,solver:None,bonus:None,bonus_penalties:0}));
+static STATE:Local=Local(UnsafeCell::new(State{phase:Phase::Choose,status:"Select skills, then search your available equipment.",goals:[usize::MAX;6],goal_count:0,show_results:false,result:0,piece:0,jewels:false,jewel_row:0,results:[None;LIMIT],count:0,visited:0,effect:None,effect_line:0,effect_lines:0,skills:false,skill_row:0,skill_rows:[0;206],skill_count:0,active_count:0,totals:skills::Totals{points:[0;206],present:[false;206]},cached:None,ranks:[[u32::MAX;9];LIMIT],search:skills::SearchBudget::new(),focus:None,focus_mask:crate::set_focus::Mask::new(),focus_targets:[(0,0,0);206],focus_scan:0,focus_count:0,focus_task:0,focus_found:0,progress:0,armor_count:[0;5],jewel_count:0,armor_ids:[[0;1200];5],jewel_ids:[0;256],owned:[0;player::MAX_EQUIPMENT],owned_count:0,solver:None,bonus:None,bonus_penalties:0}));
 pub fn state()->&'static State{unsafe{&*STATE.0.get()}}
 fn mutable()->&'static mut State{unsafe{&mut*STATE.0.get()}}
 pub fn open(u:&mut Ui){u.tab=5;u.builder=true;u.selected=0;u.len=0;u.detail=usize::MAX;u.dirty=true;let s=mutable();s.show_results=false;s.effect=None;capture(s);}
 fn capture(s:&mut State)->bool{
- s.owned_count=0;s.count=0;s.results.fill(None);s.cached=None;s.solver=None;s.bonus=None;
+ s.focus=None;s.focus_count=0;s.focus_task=0;s.owned_count=0;s.count=0;s.results.fill(None);s.cached=None;s.solver=None;s.bonus=None;
  if !player::refresh(){s.phase=Phase::Unavailable;s.status="Character equipment is unavailable. Open this in town as a hunter.";return false;}
  let p=player::snapshot();if p.hunter.is_none()||p.gender.is_none()||p.weapon_slots.is_none()||!crate::set_unlock::begin(){s.phase=Phase::Unavailable;s.status="This game build cannot verify equipment availability.";return false;}
  s.owned_count=p.owned_count;for(i,a)in p.owned[..p.owned_count].iter().enumerate(){s.owned[i]=((a.slot as u32)<<16)|u32::from(a.native);}s.owned[..s.owned_count].sort_unstable();s.phase=Phase::Choose;s.status="Checks every owned charm. Crafting materials do not limit results.";true
@@ -35,23 +37,49 @@ pub fn start(){let s=mutable();if s.goal_count==0{s.status="Select at least one 
  s.effect=None;s.skills=false;s.skill_row=0;s.jewels=false;s.jewel_row=0;s.search=skills::SearchBudget::new();s.show_results=true;s.phase=Phase::Preparing;s.progress=0;s.armor_count=[0;5];s.jewel_count=0;s.count=0;s.result=0;s.piece=0;s.visited=0;s.solver=None;s.status="Checking progression availability (not crafting stock)...";
 }
 pub fn back(u:&mut Ui){let s=mutable();if s.effect.take().is_some(){return;}if s.skills{s.skills=false;return;}if s.jewels{s.jewels=false;return;}if s.show_results{s.show_results=false;if matches!(s.phase,Phase::Preparing|Phase::Searching){s.phase=Phase::Paused;}u.selected=0;u.dirty=true;}else{crate::input::close();}}
-pub fn run_toggle(){let s=mutable();s.show_results=true;match s.phase{Phase::Searching|Phase::Preparing=>{s.phase=Phase::Paused;s.status="Search paused. Y resumes.";},Phase::Paused=>{s.phase=if s.solver.is_some(){Phase::Searching}else{Phase::Preparing};s.search=skills::SearchBudget::new();s.status="Improving the best builds found so far...";},_=>start()}}
+pub fn run_toggle(){let s=mutable();s.show_results=true;match s.phase{Phase::Searching|Phase::Preparing=>{s.phase=Phase::Paused;s.status="Search paused. Y resumes.";},Phase::Paused=>{s.phase=if s.progress==armor::ARMOR.len()+data::DECO.len(){Phase::Searching}else{Phase::Preparing};s.search=skills::SearchBudget::new();s.status="Improving the best builds found so far...";},_=>start()}}
 pub fn browse(){let s=mutable();if s.phase==Phase::Searching{s.phase=Phase::Paused;s.status="Search paused while browsing. Y resumes.";}}
 
 fn put(g:&mut solver::Gear,tree:u8,value:i8,s:&State){for i in 0..s.goal_count{if data::ACTIVATIONS[s.goals[i]].tree==tree{g.points[i]+=i16::from(value);g.present|=1<<i;}}
+ if let Some(id)=s.focus{if data::ACTIVATIONS[id].tree==tree{g.points[s.goal_count]+=i16::from(value);g.present|=1<<s.goal_count;}}
  if tree==data::SKILL_PLUS{g.extra[0]+=i16::from(value);}if tree==data::TALISMAN_BOOST{g.extra[1]+=i16::from(value);}if tree==data::TORSO_UP{g.torso_up=true;}
 }
-struct Catalog<'a>(&'a State);
+struct Catalog<'a>(&'a State,bool);
+impl Catalog<'_>{fn index(&self,k:usize,i:u32)->u32{if self.1{self.0.focus_mask.index(k,i)}else{i}}}
 impl solver::Catalog for Catalog<'_>{
- fn verified(&self,kind:usize,index:u32)->bool{match kind{0..=4=>self.0.armor_ids[kind][index as usize]&0x8000==0,6=>self.0.jewel_ids[index as usize]&0x8000==0,_=>true}}
+ fn verified(&self,kind:usize,index:u32)->bool{match kind{0..=4=>self.0.armor_ids[kind][self.index(kind,index)as usize]&0x8000==0,6=>self.0.jewel_ids[self.index(6,index)as usize]&0x8000==0,_=>true}}
 
- fn armor_count(&self,slot:usize)->u32{u32::from(self.0.armor_count[slot])}
- fn armor(&self,slot:usize,index:u32)->solver::Gear{let a=&armor::ARMOR[(self.0.armor_ids[slot][index as usize]&0x7fff)as usize];let mut g=solver::Gear::default();g.slots=a.slots;for &(tree,value)in &armor::SKILLS[a.skill as usize..a.skill as usize+a.skill_count as usize]{put(&mut g,data::ARMOR_TREES[tree as usize],value,self.0);}g}
+ fn armor_count(&self,slot:usize)->u32{if self.1{self.0.focus_mask.count(slot)}else{u32::from(self.0.armor_count[slot])}}
+ fn armor(&self,slot:usize,index:u32)->solver::Gear{let a=&armor::ARMOR[(self.0.armor_ids[slot][self.index(slot,index)as usize]&0x7fff)as usize];let mut g=solver::Gear::default();g.slots=a.slots;for &(tree,value)in &armor::SKILLS[a.skill as usize..a.skill as usize+a.skill_count as usize]{put(&mut g,data::ARMOR_TREES[tree as usize],value,self.0);}g}
  fn charm_count(&self)->u32{player::snapshot().charm_count as u32+1}
  fn charm(&self,index:u32)->solver::Gear{let mut g=solver::Gear::default();if index>0{let a=&player::snapshot().charms[index as usize-1];g.slots=a.slots;for skill in a.skills{if skill.tree!=0{put(&mut g,skill.tree,skill.points,self.0);}}}g}
- fn jewel_count(&self)->u32{self.0.jewel_count as u32}
- fn jewel(&self,index:u32)->solver::Jewel{let a=&data::DECO[(self.0.jewel_ids[index as usize]&0x7fff)as usize];let mut g=solver::Gear::default();for &(tree,value)in &data::POINTS[a.skill as usize..a.skill as usize+a.skill_count as usize]{put(&mut g,tree,value,self.0);}solver::Jewel{points:g.points,present:g.present,slots:a.slots,extra:g.extra}}
+ fn jewel_count(&self)->u32{if self.1{self.0.focus_mask.count(6)}else{self.0.jewel_count as u32}}
+ fn jewel(&self,index:u32)->solver::Jewel{let a=&data::DECO[(self.0.jewel_ids[self.index(6,index)as usize]&0x7fff)as usize];let mut g=solver::Gear::default();for &(tree,value)in &data::POINTS[a.skill as usize..a.skill as usize+a.skill_count as usize]{put(&mut g,tree,value,self.0);}solver::Jewel{points:g.points,present:g.present,slots:a.slots,extra:g.extra}}
 }
+// Seed targets are discovered from the captured catalog, never hardcoded.
+fn prepare_focus(s:&mut State){s.focus=None;s.focus_count=0;s.focus_scan=0;}
+// Inspect one bonus tree per frame; do not stall the game while planning seeds.
+fn scan_focus(s:&mut State){
+ if s.goal_count==solver::MAX_GOALS{s.focus_scan=data::ACTIVATIONS.len();return;}
+ while s.focus_scan<data::ACTIVATIONS.len(){let id=s.focus_scan;s.focus_scan+=1;let a=&data::ACTIVATIONS[id];
+  if a.points<=0||!applicable(a.tree)||s.goals[..s.goal_count].iter().any(|&g|data::ACTIVATIONS[g].tree==a.tree){continue;}
+  if data::ACTIVATIONS.iter().any(|b|b.tree==a.tree&&b.points>0&&b.points<a.points){continue;}s.focus=Some(id);
+  let c=Catalog(s,false);let mut potential=0i32;let mut overlap=0i32;
+  for k in 0..5{let mut max=0;let mut shared=0;for i in 0..c.armor_count(k){if !c.verified(k,i){continue;}let g=c.armor(k,i);let p=i32::from(g.points[s.goal_count]).max(0);max=max.max(p);if g.points[..s.goal_count].iter().any(|&v|v>0){shared=shared.max(p);}}potential+=max;overlap+=shared;}
+  let charm=(0..c.charm_count()).map(|i|i32::from(c.charm(i).points[s.goal_count]).max(0)).max().unwrap_or(0);potential+=charm;overlap+=charm;
+  potential+=(0..c.jewel_count()).filter(|&i|c.verified(6,i)).map(|i|{let j=c.jewel(i);i32::from(j.points[s.goal_count]).max(0)*3/i32::from(j.slots.max(1))}).max().unwrap_or(0)*7;
+  if potential>=i32::from(a.points){s.focus_targets[s.focus_count]=(id as u16,overlap*100/i32::from(a.points),potential*100/i32::from(a.points));s.focus_count+=1;}
+  s.focus=None;if s.focus_scan==data::ACTIVATIONS.len(){break;}return;
+ }
+ s.focus_targets[..s.focus_count].sort_unstable_by_key(|&(id,overlap,potential)|(core::cmp::Reverse(overlap),core::cmp::Reverse(potential),id));
+}
+fn focus_query(s:&State)->solver::Query{let mut q=solver::Query::default();q.goal_count=(s.goal_count+usize::from(s.focus.is_some()))as u8;q.weapon_slots=player::snapshot().weapon_slots.unwrap_or(0);q.native_wrapping=true;
+ for i in 0..q.goal_count as usize{let id=if i==s.goal_count{s.focus.unwrap()}else{s.goals[i]};let a=&data::ACTIVATIONS[id];q.goals[i]=solver::Goal{threshold:i16::from(a.points),at_least:a.points>0};if(144..=179).contains(&a.tree){q.boost_nonzero|=1<<i;}}q
+}
+// Tasks: original seed, bonus-tree seeds, verified broad pass, full broad pass.
+fn start_focus(s:&mut State,task:usize){s.focus_task=task;s.focus=if task>0&&task<=s.focus_count{Some(s.focus_targets[task-1].0 as usize)}else{None};s.focus_mask=crate::set_focus::Mask::new();s.focus_found=0;s.solver=None;}
+fn advance_focus(s:&mut State){if s.focus_task<s.focus_count+2{start_focus(s,s.focus_task+1);}else{s.phase=Phase::Complete;s.status=if s.count==0{"Search complete: no matching build."}else{"Search complete. Ranked by activated skills."};}}
+
 pub fn tick(){
  #[cfg(not(test))]let now=forge::imgui::get_time();
  #[cfg(test)]let now=0.0;
@@ -66,24 +94,33 @@ pub fn tick_at(now:f64){let s=mutable();if !s.show_results{return;}if !crate::se
    }else{let id=i-armor::ARMOR.len();let available=crate::set_unlock::decoration(data::DECO[id].native);match available{Some(true)|None=>{if s.jewel_count==256{s.phase=Phase::Unavailable;s.status="Decoration capacity exceeded.";return;}s.jewel_ids[s.jewel_count]=id as u16|if available.is_none(){0x8000}else{0};s.jewel_count+=1;},Some(false)=>{}}}
   }
   if s.progress==armor::ARMOR.len()+data::DECO.len(){if s.armor_count.contains(&0){s.phase=Phase::Complete;s.status="No available armor for at least one equipment slot.";return;}
-   let mut query=solver::Query::default();query.goal_count=s.goal_count as u8;query.weapon_slots=p.weapon_slots.unwrap_or(0);query.native_wrapping=true;
-   for i in 0..s.goal_count{let a=&data::ACTIVATIONS[s.goals[i]];query.goals[i]=solver::Goal{threshold:i16::from(a.points),at_least:a.points>0};if (144..=179).contains(&a.tree){query.boost_nonzero|=1<<i;}}
-   s.solver=Some(solver::Solver::new(query));s.phase=Phase::Searching;s.status="Searching all available armor and owned charms...";
+   prepare_focus(s);start_focus(s,0);s.phase=Phase::Searching;s.status="Searching focused skill combinations...";
   }return;
  }
  if s.phase!=Phase::Searching{return;}
  if stop_search(s,now){return;}
+ if s.focus_scan<data::ACTIVATIONS.len(){scan_focus(s);return;}
+ if s.focus_task<=s.focus_count+1&&!s.focus_mask.ready{
+  let mut mask=core::mem::replace(&mut s.focus_mask,crate::set_focus::Mask::new());let work=mask.tick(&Catalog(s,false),s.goal_count+usize::from(s.focus.is_some()),s.focus_task<=s.focus_count,2048);s.focus_mask=mask;s.visited+=u64::from(work);return;
+ }
+ if s.bonus.is_none(){
+  // Seed budgets only affect prioritization. The final pass retains every candidate.
+  let seed=s.focus_task<=s.focus_count;let limit=if seed{131_072}else if s.focus_task==s.focus_count+1{20_000_000}else{u64::MAX};
+  if (seed&&s.focus_found>=1||s.focus_task==s.focus_count+1&&s.focus_found>=30)||s.solver.as_ref().is_some_and(|e|e.work_done>=limit){advance_focus(s);return;}
+  if s.solver.is_none(){s.solver=Some(solver::Solver::new(focus_query(s)));}
+ }
  if let Some(mut bonus)=s.bonus.take(){
   let before=bonus.work_done;
   let (found,done)=bonus.tick(s.jewel_count as u32,|j|data::DECO[(s.jewel_ids[j as usize]&0x7fff)as usize].slots,|candidate|bonus_score(s,candidate).filter(|score|score[1]<=s.bonus_penalties),32);
   s.visited+=bonus.work_done-before;
-  if done{let score=rank(s,&found);retain(s,found,score);s.status="Searching other armor and charm combinations...";}
+  if done{let score=rank(s,&found);retain(s,found,score);s.focus_found=s.focus_found.saturating_add(1);s.status="Searching other armor and charm combinations...";}
   else{s.bonus=Some(bonus);}
   stop_search(s,now);return;
  }
- let Some(mut engine)=s.solver.take()else{return;};let before=engine.work_done;let result=engine.tick(&Catalog(s),256);s.visited+=engine.work_done-before;s.solver=Some(engine);
+ let Some(mut engine)=s.solver.take()else{return;};let before=engine.work_done;let result=engine.tick(&Catalog(s,s.focus_task<=s.focus_count+1),256);s.visited+=engine.work_done-before;s.solver=Some(engine);
  match result{solver::Tick::Working=>{},solver::Tick::Found(found)=>{
   let mut found=found;
+  if s.focus_task<=s.focus_count+1{for k in 0..5{found.armor[k]=s.focus_mask.index(k,found.armor[k]);}for p in &mut found.jewels[..found.jewel_count as usize]{p.jewel=s.focus_mask.index(6,p.jewel);}}
   if let Some(score)=bonus_score(s,&mut found){
    s.status="Refining decorations for this build...";s.bonus_penalties=score[1];
    let (capacity,_)=slots_for(s,&found);
@@ -92,7 +129,7 @@ pub fn tick_at(now:f64){let s=mutable();if !s.show_results{return;}if !crate::se
    stop_search(s,now);return;
   }
 
- },solver::Tick::Complete=>{s.phase=Phase::Complete;s.status=if s.count==0{"Search complete: no matching build."}else{"Search complete. Ranked by activated skills."};},solver::Tick::Cancelled=>{s.phase=Phase::Paused;s.status="Search paused.";},solver::Tick::InvalidCatalog=>{s.phase=Phase::Unavailable;s.status="The equipment snapshot or search data is invalid.";}}
+ },solver::Tick::Complete=>{advance_focus(s);},solver::Tick::Cancelled=>{s.phase=Phase::Paused;s.status="Search paused.";},solver::Tick::InvalidCatalog=>{s.phase=Phase::Unavailable;s.status="The equipment snapshot or search data is invalid.";}}
  if s.phase==Phase::Searching{stop_search(s,now);}
 
 }
@@ -161,6 +198,8 @@ fn quality(all:&skills::Totals)->(u32,u32,u32,u32,u32,u32){
 }
 fn bonus_score(s:&State,r:&mut solver::Solution)->Option<[u32;10]>{
  let all=evaluate(s,r);
+ if s.focus_task<=s.focus_count+1&&r.jewels[..r.jewel_count as usize].iter().any(|p|s.jewel_ids[p.jewel as usize]&0x8000!=0){return None;}
+ if let Some(id)=s.focus{let a=&data::ACTIVATIONS[id];if all.points[a.tree as usize]<i16::from(a.points){return None;}}
  for i in 0..s.goal_count{let a=&data::ACTIVATIONS[s.goals[i]];let p=all.points[a.tree as usize];if a.points>0&&p<i16::from(a.points)||a.points<0&&p>i16::from(a.points){return None;}r.totals[i]=i32::from(p);}
  let (negative,active,tiers,near,sum,excess)=quality(&all);let priority=skills::skill_rank(active,negative,tiers);let ranked=rank_with_totals(s,r,&all);
  Some([priority[0],priority[1],priority[2],u32::MAX-near,u32::MAX-sum,ranked[3],excess,ranked[5],ranked[6],ranked[8]])

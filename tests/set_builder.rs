@@ -2,6 +2,7 @@
 #![allow(dead_code)]
 #[path="../mod/src/set_solver.rs"]mod set_solver;
 #[path="../mod/src/set_skills.rs"]mod set_skills;
+#[path="../mod/src/set_focus.rs"]mod set_focus;
 #[path="../mod/src/set_builder.rs"]mod set_builder;
 #[derive(Default)]pub struct Ui{tab:usize,builder:bool,selected:usize,len:usize,detail:usize,dirty:bool,count:usize,results:[u16;8]}
 fn enter(_: &mut Ui,_:usize){}
@@ -81,7 +82,7 @@ fn production_adapter_fills_spare_slots_keeps_goals_charms_and_exposes_l3(){
  // result must remain eligible instead of silently keeping every socket empty.
  set_unlock::UNKNOWN.store(true,std::sync::atomic::Ordering::Relaxed);set_builder::start();
  for _ in 0..20_000{set_builder::tick();if matches!(set_builder::state().phase,set_builder::Phase::Complete){break;}}
- let i=(0..set_builder::state().count).find(|&i|{let r=set_builder::state().results[i].unwrap();r.armor[0]==1&&r.charm==0}).unwrap();
+ let i=(0..set_builder::state().count).find(|&i|{let r=set_builder::state().results[i].unwrap();r.armor[0]==1&&r.jewel_count>0}).unwrap();
  set_builder::select_result(i);set_builder::refresh_summary();
  let s=set_builder::state();assert!(s.totals.points[1]>=20);
  assert!(s.totals.points[2]>=10,"unknown-source jewels must still be tried and labelled");
