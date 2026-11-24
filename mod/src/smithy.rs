@@ -42,11 +42,11 @@ pub fn init_after_plugins(){unsafe{
 fn install(){unsafe{
  let target=forge::mem::text_addr()+0x6f1ae8;let word=ptr::read_unaligned(target as *const u32);
  // Recomp Forge chains entry hooks through their original trampolines. Only
- // recognize its literal ARM jump into the shared plugin region; other patched
+ // recognize its literal ARM jump into the normal or Windows spill region; other patched
  // or wrong-version entries still fail closed. This hook does not inspect LR.
  let compatible=word==0xe92d41f0||word==0xe51ff004&&{
   let detour=ptr::read_unaligned((target+4)as *const u32);
-  (0x03200000..0x03e00000).contains(&detour)&&detour&3==0
+  ((0x03200000..0x03e00000).contains(&detour)||(0xf0100000..0xf8100000).contains(&detour))&&detour&3==0
  };
  if !compatible{return;}create(&raw mut HOOK,target,update as *const () as u32,&raw mut ORIGINAL);
 }}

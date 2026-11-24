@@ -138,6 +138,11 @@ scenario(['utility'], accepted=False, ready=False)
 for word, destination, accepted in [
     (0xe51ff004, 0x03200000, True),
     (0xe51ff004, 0x03dffffc, True),
+    (0xe51ff004, 0xf0100000, True),
+    (0xe51ff004, 0xf80ffffc, True),
+    (0xe51ff004, 0xf00ffffc, False),
+    (0xe51ff004, 0xf8100000, False),
+    (0xe51ff004, 0xf0100001, False),
     (0xe51ff004, 0x031ffffc, False),
     (0xe51ff004, 0x03e00000, False),
     (0xe51ff004, 0x03200001, False),

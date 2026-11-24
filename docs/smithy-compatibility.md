@@ -136,3 +136,32 @@ not every weapon/language, later hook installers, Windows execution or WAN play.
 
 Screenshots: [KatSmithy tree](screenshots/compatibility/kat-tree.webp),
 [native wishlist hint with KatSmithy loaded](screenshots/compatibility/kat-native-wishlist.webp).
+
+## Installed Windows 0.19.2 stack
+
+The user's Windows 0.19.2 executable was also tested under Wine on Linux, in a
+separate prefix/display/network namespace with copied saves and the complete
+installed mod stack. Unlike the earlier inspected Linux loader, this executable
+has an additional 128 MiB plugin arena `[0xf0100000,0xf8100000)`. KatSmithy and
+Fusion load there. Utility now recognizes aligned Forge entry jumps into that
+verified arena, retaining the same signature and foreign-entry guards.
+Compiled boundary regressions failed before this change and pass afterward.
+
+Candidate Utility NRO:
+`f2b9aa68f9dbd8e7f3b35f6ba882ee0b74f5e8146c01fe111cf2b21e7906a8f2`.
+Fusion also needed to defer its own smithy hook: its installed onInit hook caused
+KatSmithy's stock-prologue probe to fail independently of Utility. With both
+fixes, the actual chain is Fusion `f17a4798` -> Utility `033b177c` -> KatSmithy
+`f01536f4` -> native original. All nine plugins loaded, and KatSmithy accepted the
+stock entry during its first update. The new Windows artifact is distinct from
+the earlier Linux/multiplayer artifact recorded above; this startup change
+was not relabeled as another multiplayer run.
+
+The exact Windows executable under Wine passed KatSmithy's full Great Sword
+tree and 3D preview, native Upgrade Equipment wishlist add/remove, and Fusion's
+native selector open/cancel with unchanged equipment, pouch, box and zenny.
+The wishlist test restored all three existing copied-save entries byte-for-byte.
+R3 in KatSmithy's custom tree is not a Utility wishlist integration; the verified
+shortcut belongs to the normal Upgrade Equipment screen. The screenshots above
+now show this Windows-under-Wine full-stack pass. Tests used a private software
+Vulkan renderer to avoid the user's GPU session; the running game was not restarted.
