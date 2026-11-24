@@ -30,7 +30,8 @@ source, Cargo and Rustup roots so panic paths do not disclose local directories.
 ## Regenerate local data
 
 Provide the Kiranico catalog JSON, Gathering Hall Studios' MHGenDatabase SQLite
-database, an owned MHGU 1.4 English dump, and the existing local artwork cache.
+database and an owned MHGU 1.4 English dump. The location and weapon artwork
+cache is optional; a clean build does not need the author's private cache.
 The database's upstream source is
 [MHGenDatabase](https://github.com/gatheringhallstudios/MHGenDatabase), under
 `app/src/main/assets/databases/`. Keep its MIT notice. The artwork cache contains
@@ -41,10 +42,16 @@ separate from the authored code license. No artwork is downloaded by preparation
 python3 tools/prepare.py \
   --catalog /path/to/catalog.json \
   --database /path/to/mhgu.db \
-  --game-dir /path/to/owned-game/data \
-  --art-dir /path/to/existing-compendium/data
+  --game-dir /path/to/owned-game/data
 MHGU_TOOLCHAIN=/path/to/toolchain bash mod/build-local.sh
 ```
+
+Without `--art-dir`, location cards retain the extracted game minimaps and weapon
+details retain the bundled weapon-type icons. Optional illustrations and weapon
+renders are omitted. Preparation clears only its two artwork caches under
+ignored `build/data/`, so an artwork-free rebuild cannot silently reuse assets
+from a previous preparation. To include your own cache, add
+`--art-dir /path/to/cache` with both `location-art/` and `weapon-art/` directories.
 
 Preparation reads English GMD name slots, minimap TEX files, native window/title
 artwork and the English font glyphs from the owned dump. `fonttools` converts the
