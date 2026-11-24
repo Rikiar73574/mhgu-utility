@@ -28,25 +28,9 @@ def first(uc,at,size,ctx):
   r=[uc.reg_read(x)for x in [UC_ARM_REG_R0,UC_ARM_REG_R1,UC_ARM_REG_R2,UC_ARM_REG_R3]];hooks[r[1]]=r[2];put(r[3],native if r[1]==MAIN+0x6439ec else smith_original);uc.reg_write(UC_ARM_REG_R0,r[0]);return True
  return False
 ns['storage_callback']=first
-# Exercise the actual ARM install guard. A Forge entry hook may precede us,
-# but a foreign jump or a wrong-version prologue must never be chained.
-entry=MAIN+0x6f1ae8;saved=(get(entry),get(entry+4))
-for word,destination,accepted in [
- (0xe92d41f0,saved[1],True),
- (0xe51ff004,0x03200000,True),
- (0xe51ff004,0x03dffffc,True),
- (0xe51ff004,0x031ffffc,False),
- (0xe51ff004,0x03e00000,False),
- (0xe51ff004,0x03200001,False),
- (0xe51ff004,0,False),
- (0xea000000,0x03200000,False),
- (0xe92d4010,saved[1],False),
-]:
- hooks.clear();put(entry,word);put(entry+4,destination)
- call(ns['symbols']['forge_onInit'])
- assert (entry in hooks)==accepted,(hex(word),hex(destination),accepted,hooks)
-put(entry,saved[0]);put(entry+4,saved[1]);hooks.clear()
+# Entry guards and both peer init orders are exercised in arm_smithy_chain.py.
 call(ns['symbols']['forge_onInit'])
+call(ns['symbols']['forge_onUpdate'],0)
 obj=HEAP+0x4000;smith=HEAP+0x8000
 put(obj,MAIN+0x1777c60);put(obj+0x4c,0x34);put(obj+0x50,33)
 for i in range(4):put(obj+0x228+8*i,0xffffffff);put(obj+0x22c+8*i,0)
@@ -65,4 +49,4 @@ put(obj+0x230,0xffffffff);put(obj+0x234,0);call(refresh,obj,0xcf,1,1);assert len
 # Leaving the upgrade state removes the native hint.
 struct.pack_into('<H',data,0x5c,0);u.mem_write(smith,bytes(data));call(hooks[MAIN+0x6f1ae8],smith)
 assert rows[-1][1][0]==0xffffffff and len(labels)==n
-print('PASS: stock/Forge entry guards, foreign jumps refused, native row insertion, Help preserved, temporary state restored, full/foreign menus excluded, exit cleanup')
+print('PASS: native row insertion, Help preserved, temporary state restored, full/foreign menus excluded, exit cleanup')

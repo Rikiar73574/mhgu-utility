@@ -159,6 +159,10 @@ load orders. This standalone build passed the complete installed mod stack on
 Linux with stock MHGURecomp commit `a272b61`, using copied saves. See the
 [validation records](docs/validation.md) and [UX validation](docs/ux-validation.md) for the exact artifact and coverage. All plugins share
 Recomp's 12 MiB plugin memory region, including their BSS and loader alignment.
+For Modern Weapon Trees and KatSmithy, see the separate
+[smithy compatibility investigation](docs/smithy-compatibility.md): the deferred
+smithy hook is ARM regression tested, while combined plugin capacity and live
+coexistence still require validation.
 
 See [build instructions](docs/BUILD.md), [source provenance](THIRD_PARTY_NOTICES.md),
 and the research notes under `docs/`.
