@@ -5,6 +5,8 @@ struct State{selection:Option<(usize,usize)>,fresh:bool}
 struct Local(UnsafeCell<State>);unsafe impl Sync for Local{}
 static STATE:Local=Local(UnsafeCell::new(State{selection:None,fresh:false}));
 static mut ORIGINAL:u32=0;
+static mut INITIALIZED:bool=false;
+static mut FIRST_UPDATE:bool=true;
 #[repr(C)]struct Hook([u32;19]);
 static mut HOOK:Hook=Hook([0;19]);
 unsafe extern "C"{#[link_name="forge_hook_create"]fn create(out:*mut Hook,target:u32,detour:u32,original:*mut u32)->*mut Hook;}
@@ -29,14 +31,22 @@ pub unsafe extern "C" fn compendium_smithy_capture(object:u32){unsafe{
  if world::TREE[node].attack!=u16at(0x2240){return;}
  if let Some(recipe)=weapon_data::WEAPONS[node].recipes.iter().position(|r|r.label=="Upgrade"){s.selection=Some((node,recipe));}
 }}
-pub fn install(){unsafe{
+// Stock-only smithy peers must inspect the unpatched entry during onInit.
+// Allow every peer its first update too (KatSmithy installs there). Install
+// once on the following update; Forge routes our original through the peer.
+pub fn init_after_plugins(){unsafe{
+ if FIRST_UPDATE{FIRST_UPDATE=false;return;}
+ if INITIALIZED{return;}INITIALIZED=true;
+ if super::input::ready(){install();}
+}}
+fn install(){unsafe{
  let target=forge::mem::text_addr()+0x6f1ae8;let word=ptr::read_unaligned(target as *const u32);
  // Recomp Forge chains entry hooks through their original trampolines. Only
- // recognize its literal ARM jump into the shared plugin region; other patched
+ // recognize its literal ARM jump into the normal or Windows spill region; other patched
  // or wrong-version entries still fail closed. This hook does not inspect LR.
  let compatible=word==0xe92d41f0||word==0xe51ff004&&{
   let detour=ptr::read_unaligned((target+4)as *const u32);
-  (0x03200000..0x03e00000).contains(&detour)&&detour&3==0
+  ((0x03200000..0x03e00000).contains(&detour)||(0xf0100000..0xf8100000).contains(&detour))&&detour&3==0
  };
  if !compatible{return;}create(&raw mut HOOK,target,update as *const () as u32,&raw mut ORIGINAL);
 }}

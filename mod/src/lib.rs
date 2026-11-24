@@ -15,7 +15,9 @@ struct Text{bytes:[u8;256],len:usize}
 impl Text{fn new()->Self{Self{bytes:[0;256],len:0}}fn str(&self)->&str{core::str::from_utf8(&self.bytes[..self.len]).unwrap_or("")}}
 impl Write for Text{fn write_str(&mut self,s:&str)->fmt::Result{let mut n=s.len().min(256-self.len);while !s.is_char_boundary(n){n-=1;}self.bytes[self.len..self.len+n].copy_from_slice(&s.as_bytes()[..n]);self.len+=n;Ok(())}}
 #[unsafe(no_mangle)]pub extern "C" fn forge_onLoad(p:*mut forge::sys::init::PluginInitParams){unsafe{(*p).required_version=forge::REQUIRED_VERSION;let n=b"MHGU Utility\0";core::ptr::copy_nonoverlapping(n.as_ptr(),(p as *mut u8).add(6),n.len());}}
-#[unsafe(no_mangle)]pub extern "C" fn forge_onInit(){let _=forge::log::init();if input::install(){native_hint::install();smithy::install();armor_preview::install();gather_map::install();start_menu::install();forge::log::prelude::info!("MHGU Utility 0.3 ready: Items / Weapons / Armor / Wishlist / Quest routes");}else{forge::log::prelude::error!("MHGU Utility disabled: HID imports incompatible");}}
+#[unsafe(no_mangle)]pub extern "C" fn forge_onInit(){let _=forge::log::init();if input::install(){native_hint::install();armor_preview::install();gather_map::install();start_menu::install();forge::log::prelude::info!("MHGU Utility 0.3 ready: Items / Weapons / Armor / Wishlist / Quest routes");}else{forge::log::prelude::error!("MHGU Utility disabled: HID imports incompatible");}}
+// Recomp completes every plugin initializer before the first update callback.
+#[unsafe(no_mangle)]pub extern "C" fn forge_onUpdate(_dt:f32){smithy::init_after_plugins();}
 fn query_match(s:&str,u:&Ui)->bool{
  let mut query=[0;48];let mut n=0;for &b in &u.query[..u.len]{if b.is_ascii_alphanumeric(){query[n]=b.to_ascii_lowercase();n+=1;}}if n==0{return true;}
  let mut hay=[0u8;256];let mut len=0;for &b in s.as_bytes(){if b.is_ascii_alphanumeric()&&len<hay.len(){hay[len]=b.to_ascii_lowercase();len+=1;}}
