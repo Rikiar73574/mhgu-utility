@@ -18,7 +18,7 @@ for node in ast.parse(source.read_text()).body:
 fixture = compile(ast.Module(body=prefix, type_ignores=[]), str(source), 'exec')
 
 
-def scenario(order, word=0xe92d41f0, destination=None, accepted=True, fail=False, ready=True):
+def scenario(order, word=0xe92d41f0, destination=None, accepted=True, fail=False, ready=True, lazy=False):
     ns = {'__file__': str(source)}
     exec(fixture, ns)
     u, put, get, call = (ns[n] for n in ['u', 'put', 'get', 'call'])
@@ -85,7 +85,14 @@ def scenario(order, word=0xe92d41f0, destination=None, accepted=True, fail=False
         if plugin == 'utility':
             call(ns['symbols']['forge_onInit'])
             assert counts['create'] == 0, 'Utility must wait until all plugin initializers finish'
-        else:
+        elif not lazy:
+            peer_init()
+    # One complete callback round lets first-update peers inspect stock code.
+    for plugin in order:
+        if plugin == 'utility':
+            call(ns['symbols']['forge_onUpdate'], 0)
+            assert counts['create'] == 0, 'Utility must allow all first-update callbacks to finish'
+        elif lazy:
             peer_init()
     call(ns['symbols']['forge_onUpdate'], 0)
     assert counts['create'] == int(accepted), (word, destination, counts)
@@ -123,6 +130,8 @@ def scenario(order, word=0xe92d41f0, destination=None, accepted=True, fail=False
 
 scenario(['utility', 'peer'])
 scenario(['peer', 'utility'])
+scenario(['utility', 'peer'], lazy=True)
+scenario(['peer', 'utility'], lazy=True)
 scenario(['utility'])
 scenario(['utility'], fail=True)
 scenario(['utility'], accepted=False, ready=False)
@@ -137,4 +146,4 @@ for word, destination, accepted in [
     (0xe92d4010, None, False),
 ]:
     scenario(['utility'], word, destination, accepted)
-print('PASS: both init orders, previous-detour execution, stock path, disabled input, one-shot failure, Forge/foreign entry guards')
+print('PASS: both init/first-update orders, previous-detour execution, stock path, disabled input, one-shot failure, Forge/foreign entry guards')

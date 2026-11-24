@@ -6,6 +6,7 @@ struct Local(UnsafeCell<State>);unsafe impl Sync for Local{}
 static STATE:Local=Local(UnsafeCell::new(State{selection:None,fresh:false}));
 static mut ORIGINAL:u32=0;
 static mut INITIALIZED:bool=false;
+static mut FIRST_UPDATE:bool=true;
 #[repr(C)]struct Hook([u32;19]);
 static mut HOOK:Hook=Hook([0;19]);
 unsafe extern "C"{#[link_name="forge_hook_create"]fn create(out:*mut Hook,target:u32,detour:u32,original:*mut u32)->*mut Hook;}
@@ -31,9 +32,10 @@ pub unsafe extern "C" fn compendium_smithy_capture(object:u32){unsafe{
  if let Some(recipe)=weapon_data::WEAPONS[node].recipes.iter().position(|r|r.label=="Upgrade"){s.selection=Some((node,recipe));}
 }}
 // Stock-only smithy peers must inspect the unpatched entry during onInit.
-// Install once on the game update thread, after every plugin has initialized;
-// Forge then routes our original through the earlier peer detour.
+// Allow every peer its first update too (KatSmithy installs there). Install
+// once on the following update; Forge routes our original through the peer.
 pub fn init_after_plugins(){unsafe{
+ if FIRST_UPDATE{FIRST_UPDATE=false;return;}
  if INITIALIZED{return;}INITIALIZED=true;
  if super::input::ready(){install();}
 }}

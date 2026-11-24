@@ -31,6 +31,7 @@ ns['storage_callback']=first
 # Entry guards and both peer init orders are exercised in arm_smithy_chain.py.
 call(ns['symbols']['forge_onInit'])
 call(ns['symbols']['forge_onUpdate'],0)
+call(ns['symbols']['forge_onUpdate'],0)
 obj=HEAP+0x4000;smith=HEAP+0x8000
 put(obj,MAIN+0x1777c60);put(obj+0x4c,0x34);put(obj+0x50,33)
 for i in range(4):put(obj+0x228+8*i,0xffffffff);put(obj+0x22c+8*i,0)
