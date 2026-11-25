@@ -190,6 +190,16 @@ with tempfile.TemporaryDirectory(prefix='compendium-set-builder-') as folder:
     out=render();assert 'Pieces, sockets & jewels'in out and 'Skills from this build'in out,out
     assert 'Weapon'in out and 'Charm'in out and 'Missing'in out,out
     assert any('Acrobat'in t and '/ 10'in t for t in out),out
+    # Prompts belong to their controls, with no detached footer legend.
+    assert all(key in out for key in ('LB','RB','LT','RT')),out
+    # Labels are positioned inside actual native shoulder artwork, not a new legend.
+    for key in ('LB','RB','LT','RT'):
+        pos=next(o[1] for o in n['drawops'] if o[0]=='text' and o[2][1]==key)
+        pixels=[o for o in n['drawops'] if o[0]=='ImDrawList_AddRectFilled'
+                and abs(o[1][0]-pos[0])<30 and abs(o[1][1]-pos[1])<30
+                and 0<o[1][2]-o[1][0]<30 and 0<o[1][3]-o[1][1]<30]
+        assert len(pixels)>5,(key,pixels)
+    assert not any('LT: save' in t or 'workspace tabs' in t or t.startswith('R3  ') for t in out),out
     n['preview']('native-set-builder-results.png')
     print('PASS: dedicated navigation and complete result rendering',flush=True)
     # The visible gear/skill view must never enter the obsolete hidden jewel mode.
@@ -201,11 +211,11 @@ with tempfile.TemporaryDirectory(prefix='compendium-set-builder-') as folder:
     out=press(2);assert 'Pieces, sockets & jewels'in out,out
     out=press(1<<5);rows=path.read_text().splitlines();assert len(rows)==5 and all(r.startswith('armor:')for r in rows),rows
     press(1<<5);assert path.read_text().splitlines()==rows,'Wishlist add was not idempotent'
-    out=click('Compare');assert any('pinned'in t for t in out),out
+    out=press(1<<9);assert any('pinned'in t for t in out),out
     out=click('Compare');assert 'Compare complete loadouts'in out,out
     out=click('Back to result');assert 'Pieces, sockets & jewels'in out,out
     # Persist, reopen and rename through actual ARM filesystem adapters.
-    out=click('Save build');assert any('Build saved'in t for t in out),out
+    out=press(1<<8);assert any('Build saved'in t for t in out),out
     storage=path.with_suffix('.set-builder.txt');original=storage.read_text();assert 'builds=1'in original,original
     out=click('Saved builds');assert 'Acrobat'in out,out
     out=click('Rename');assert 'Rename saved build'in out,out

@@ -4,7 +4,7 @@ Generated art/font bytes stay under build/. No texture or font is downloaded.
 """
 import collections,io,math,os,struct,zlib
 from pathlib import Path
-from PIL import Image
+from PIL import Image, ImageDraw
 from fontTools.fontBuilder import FontBuilder
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 from paths import DATA,GENERATED
@@ -81,6 +81,13 @@ def prepare(game):
     cache=DATA/'game-ui';cache.mkdir(exist_ok=True)
     images=[lobby.crop((0,386,96,480)),lobby.crop((400,136,464,200)),lobby0.crop((0,272,64,336)),lobby0.crop((160,272,161,336)),lobby0.crop((328,272,424,336))]
     images += [lobby0.crop((160+i*28,64,188+i*28,92)) for i in range(4)]
+    prompts=decode(root/'eng/GUI/02_common/font/button_festa_00_ID.tex')
+    # Native shoulder silhouettes and clicked sticks. Shoulder lettering is
+    # drawn at runtime as LB/RB/LT/RT to match the existing PC controller names.
+    for index,(x,y) in enumerate(((96,0),(0,24),(120,24),(144,24),(168,24),(192,24))):
+        icon=prompts.crop((x,y,x+24,y+24)).convert('RGBA')
+        if index<4:ImageDraw.Draw(icon).rectangle((5,6,18,18),fill='white')
+        images.append(icon)
     # Keep small native corner strips; stretch only their center in the renderer.
     out=["pub struct Sprite{pub w:u16,pub h:u16,pub runs:&'static[(u8,u8,u8,u8,u32)]}", 'pub static SPRITES:&[Sprite]=&[']
     for index,im in enumerate(images):
