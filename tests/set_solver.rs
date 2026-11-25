@@ -321,13 +321,13 @@ fn spare_slot_refinement_is_incremental_uses_all_jewels_and_preserves_minimums()
     let mut solver=Solver::new(q);
     let seed=loop{if let Tick::Found(s)=solver.tick(&d,1){break s;}};
     assert_eq!(seed.jewel_count,0);
-    fn score(d:&Data,s:&mut Solution)->Option<[u32;10]>{
+    fn score(d:&Data,s:&mut Solution)->Option<[u32;13]>{
         let mut attack=d.armor[0][0].points[0]as i32;
         let mut defense=d.armor[0][0].points[1]as i32;
         for p in &s.jewels[..s.jewel_count as usize]{attack+=d.jewels[p.jewel as usize].points[0]as i32;defense+=d.jewels[p.jewel as usize].points[1]as i32;}
         if attack<10{return None;}
         s.totals[0]=attack;s.totals[1]=defense;
-        Some([u32::from(defense<10),u32::from(attack<15),100-defense.min(10)as u32,s.jewel_count as u32,0,0,0,0,0,0])
+        Some([u32::from(defense<10),u32::from(attack<15),100-defense.min(10)as u32,s.jewel_count as u32,0,0,0,0,0,0,0,0,0])
     }
     let mut seed=seed;let initial=score(&d,&mut seed).unwrap();
     let mut refine=DecorationRefiner::new(seed,[3,0,0,0,0,0,0],|j|d.jewels[j as usize].slots,initial).unwrap();
@@ -346,11 +346,11 @@ fn spare_slot_refinement_is_incremental_uses_all_jewels_and_preserves_minimums()
 #[test]
 fn refinement_validates_each_bin_and_stops_without_useful_improvements(){
     let seed=Solution{armor:[0;5],charm:0,jewels:[Placement::default();MAX_JEWELS],jewel_count:0,totals:[10,0,0,0,0,0]};
-    let mut refine=DecorationRefiner::new(seed,[1,1,1,0,0,0,0],|_|2,[0;10]).unwrap();
+    let mut refine=DecorationRefiner::new(seed,[1,1,1,0,0,0,0],|_|2,[0;13]).unwrap();
     let(s,done)=refine.tick(1,|_|2,|_|panic!("two-slot jewel cannot fit separate one-slot bins"),20);
     assert!(done);assert_eq!(s,seed);
     let mut overflow=seed;overflow.jewel_count=1;overflow.jewels[0]=Placement{jewel:0,gear:0};
-    assert!(DecorationRefiner::new(overflow,[1;7],|_|2,[0;10]).is_none());
+    assert!(DecorationRefiner::new(overflow,[1;7],|_|2,[0;13]).is_none());
 }
 
 #[test]
@@ -360,10 +360,10 @@ fn full_slot_first_solution_can_replace_harmful_goal_jewel(){
  let mut q=query(10,0);q.goal_count=1;let mut solver=Solver::new(q);
  let seed=loop{if let Tick::Found(s)=solver.tick(&d,1){break s;}};
  assert_eq!(seed.jewels[0].jewel,0);
- let mut refine=DecorationRefiner::new(seed,[1,0,0,0,0,0,0],|_|1,[1,0,0,0,0,0,0,0,0,0]).unwrap();
+ let mut refine=DecorationRefiner::new(seed,[1,0,0,0,0,0,0],|_|1,[1,0,0,0,0,0,0,0,0,0,0,0,0]).unwrap();
  let result=loop{let (s,done)=refine.tick(2,|_|1,|s|{
    let j=d.jewels[s.jewels[0].jewel as usize];s.totals[0]=j.points[0]as i32;
-   Some([u32::from(j.points[1]<0),0,0,0,0,0,0,0,0,0])
+   Some([u32::from(j.points[1]<0),0,0,0,0,0,0,0,0,0,0,0,0])
  },2);if done{break s;}};
  assert_eq!(result.jewel_count,1);assert_eq!(result.jewels[0].jewel,1);assert_eq!(result.totals[0],10);
 }
@@ -371,9 +371,9 @@ fn full_slot_first_solution_can_replace_harmful_goal_jewel(){
 #[test]
 fn decoration_refinement_yields_equipment_search_within_fixed_work_limit(){
  let seed=Solution{armor:[0;5],charm:0,jewels:[Placement::default();MAX_JEWELS],jewel_count:0,totals:[0;6]};
- let mut refine=DecorationRefiner::new(seed,[3;7],|_|1,[u32::MAX;10]).unwrap();
+ let mut refine=DecorationRefiner::new(seed,[3;7],|_|1,[u32::MAX;13]).unwrap();
  for frame in 0..258{
-  let(_,done)=refine.tick(256,|_|1,|s|Some([u32::MAX-u32::from(s.jewel_count),0,0,0,0,0,0,0,0,0]),32);
+  let(_,done)=refine.tick(256,|_|1,|s|Some([u32::MAX-u32::from(s.jewel_count),0,0,0,0,0,0,0,0,0,0,0,0]),32);
   assert!(refine.work_done<=8192);
   if done{return;}
   assert!(frame<257,"one result must not monopolize subsequent equipment search");
@@ -384,10 +384,10 @@ fn decoration_refinement_yields_equipment_search_within_fixed_work_limit(){
 #[test]
 fn refinement_tries_all_seven_bins_after_requested_skill_is_already_met(){
  let seed=Solution{armor:[0;5],charm:0,jewels:[Placement::default();MAX_JEWELS],jewel_count:0,totals:[20,0,0,0,0,0]};
- let mut refiner=DecorationRefiner::new(seed,[1;7],|_|1,[u32::MAX,0,0,0,0,0,0,0,0,0]).unwrap();
+ let mut refiner=DecorationRefiner::new(seed,[1;7],|_|1,[u32::MAX,0,0,0,0,0,0,0,0,0,0,0,0]).unwrap();
  let result=loop{let(s,done)=refiner.tick(1,|_|1,|s|{
   assert_eq!(s.totals[0],20,"requested Attack L must stay intact");
-  Some([u32::MAX-u32::from(s.jewel_count),0,0,0,0,0,0,0,0,0])
+  Some([u32::MAX-u32::from(s.jewel_count),0,0,0,0,0,0,0,0,0,0,0,0])
  },1);if done{break s;}};
  assert_eq!(result.jewel_count,7);
  for gear in 0..7{assert_eq!(result.jewels[..7].iter().filter(|p|p.gear==gear).count(),1);}
@@ -400,13 +400,13 @@ fn bundled_jewels_activate_a_bonus_instead_of_chasing_unreachable_guard(){
  // Sharpener +2 jewels can activate another skill. One-step scoring picks Guard.
  let seed=Solution{armor:[0;5],charm:1,jewels:[Placement::default();MAX_JEWELS],jewel_count:0,totals:[21,2,0,0,0,0]};
  let capacity=[1,1,0,1,1,1,0];
- fn score(s:&mut Solution)->Option<[u32;10]>{
+ fn score(s:&mut Solution)->Option<[u32;13]>{
   let(mut guard,mut sharp)=(2,0);
   for p in &s.jewels[..s.jewel_count as usize]{if p.jewel==0{guard+=1;}else{sharp+=2;}}
   s.totals=[21,guard,sharp,0,0,0];
   let active=1+u32::from(guard>=10)+u32::from(sharp>=10);
   let near=guard.min(10).max(sharp.min(10))as u32;
-  Some([u32::MAX-active,0,0,u32::MAX-near,u32::MAX-(guard+sharp)as u32,s.jewel_count as u32,0,0,0,0])
+  Some([u32::MAX-active,0,0,u32::MAX-near,u32::MAX-(guard+sharp)as u32,s.jewel_count as u32,0,0,0,0,0,0,0])
  }
  for budget in [1,32,256]{
   let mut initial=seed;let mut refine=DecorationRefiner::new(seed,capacity,|_|1,score(&mut initial).unwrap()).unwrap();

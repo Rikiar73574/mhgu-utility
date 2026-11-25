@@ -9,7 +9,7 @@ fn enter(_: &mut Ui,_:usize){}
 mod input{pub fn close(){}}
 mod catalog{pub const ENTRIES:[u8;0]=[];}
 mod wishlist{pub const ARMOR_BASE:usize=0;pub fn contains(_:usize,_:usize)->bool{false}pub fn toggle(_:usize,_:usize){}pub fn failed()->bool{false}}
-mod set_unlock{pub static UNKNOWN:std::sync::atomic::AtomicBool=std::sync::atomic::AtomicBool::new(false);pub fn begin()->bool{true}pub fn ready()->bool{true}pub fn tick()->bool{true}pub fn armor(_:u8,_:u16)->Option<bool>{Some(true)}pub fn decoration(_:u16)->Option<bool>{if UNKNOWN.load(std::sync::atomic::Ordering::Relaxed){None}else{Some(true)}}}
+mod set_unlock{pub static UNKNOWN:std::sync::atomic::AtomicBool=std::sync::atomic::AtomicBool::new(false);pub fn begin()->bool{true}pub static READY:std::sync::atomic::AtomicBool=std::sync::atomic::AtomicBool::new(true);pub fn ready()->bool{READY.load(std::sync::atomic::Ordering::Relaxed)}pub fn tick()->bool{true}pub fn armor(_:u8,_:u16)->Option<bool>{Some(true)}pub fn decoration(_:u16)->Option<bool>{if UNKNOWN.load(std::sync::atomic::Ordering::Relaxed){None}else{Some(true)}}}
 mod armor_data{
  pub struct Armor{pub native:u16,pub slot:u8,pub hunter:u8,pub gender:u8,pub slots:u8,pub skill:u16,pub skill_count:u8,pub defense:u16}
  pub static ARMOR:[Armor;6]=[Armor{native:0,slot:0,hunter:2,gender:2,slots:3,skill:0,skill_count:2,defense:10},
@@ -36,11 +36,13 @@ mod set_data{
 mod set_player{
  pub const MAX_EQUIPMENT:usize=1;
  #[derive(Clone,Copy)]pub struct Skill{pub tree:u8,pub points:i8}
- pub struct Charm{pub slots:u8,pub skills:[Skill;2]}
- pub struct Owned{pub slot:u8,pub native:u16}
- pub struct Snapshot{pub hunter:Option<u8>,pub gender:Option<u8>,pub weapon_slots:Option<u8>,pub owned_count:usize,pub owned:[Owned;0],pub charm_count:usize,pub charms:[Charm;2]}
+ #[derive(Clone,Copy)]pub struct Charm{pub slots:u8,pub skills:[Skill;2]}
+ #[derive(Clone,Copy)]pub struct Owned{pub slot:u8,pub native:u16}
+ #[derive(Clone,Copy)]pub struct Snapshot{pub hunter:Option<u8>,pub gender:Option<u8>,pub weapon_slots:Option<u8>,pub owned_count:usize,pub owned:[Owned;0],pub charm_count:usize,pub charms:[Charm;2]}
  pub fn refresh()->bool{true}
- pub fn snapshot()->&'static Snapshot{&DATA}
+ pub static MOVED:std::sync::atomic::AtomicBool=std::sync::atomic::AtomicBool::new(false);
+ pub fn snapshot()->&'static Snapshot{if MOVED.load(std::sync::atomic::Ordering::Relaxed){&MOVED_DATA}else{&DATA}}
+ static MOVED_DATA:Snapshot=Snapshot{weapon_slots:Some(3),..DATA};
  static DATA:Snapshot=Snapshot{hunter:Some(0),gender:Some(0),weapon_slots:Some(0),owned_count:0,owned:[],charm_count:2,charms:[
   Charm{slots:0,skills:[Skill{tree:4,points:1};2]},Charm{slots:1,skills:[Skill{tree:2,points:4},Skill{tree:0,points:0}]}]};
 }
@@ -53,6 +55,7 @@ fn production_adapter_fills_spare_slots_keeps_goals_charms_and_exposes_l3(){
  assert_eq!(set_builder::state().count,0);
  for _ in 0..20_000{set_builder::tick();if matches!(set_builder::state().phase,set_builder::Phase::Complete){break;}}
  let s=set_builder::state();assert!(matches!(s.phase,set_builder::Phase::Complete));assert!(s.count>=3);
+ set_builder::tick_with_clock(0.0,||panic!("complete search read clock"));
  // This checks actual adapter quality, native evaluation and result retention.
  let mut saw_bonus=false;let mut saw_late_charm=false;let mut saw_upgrade=false;let mut previous=usize::MAX;
  for result in 0..s.count{set_builder::select_result(result);set_builder::refresh_summary();let s=set_builder::state();let r=s.results[s.result].unwrap();
@@ -114,4 +117,54 @@ fn production_adapter_fills_spare_slots_keeps_goals_charms_and_exposes_l3(){
  set_builder::show_effect(usize::MAX);assert_eq!(set_builder::state().effect,None);
  set_builder::back(&mut ui);assert!(!set_builder::state().skills);
 
+ // Browsing settings must stop preparation before it can become a background search.
+ set_builder::start();assert!(set_builder::state().phase==set_builder::Phase::Preparing);set_builder::browse();assert!(set_builder::state().phase==set_builder::Phase::Paused);
+ set_builder::run_toggle();for _ in 0..20_000{set_builder::tick();if set_builder::state().phase==set_builder::Phase::Complete{break;}}
+ assert!(set_builder::state().count>0);set_builder::select_result(0);assert_eq!(set_builder::slots().0[6],0);
+ // A later equipment/settings change cannot retroactively alter a retained build.
+ set_player::MOVED.store(true,std::sync::atomic::Ordering::Relaxed);assert_eq!(set_builder::slots().0[6],0);
+
+ // With no mandatory skill, still search, refine jewels and rank valid loadouts.
+ let goals=set_builder::state().goals;let n=set_builder::state().goal_count;
+ for &g in &goals[..n]{set_builder::toggle(g);}
+ assert_eq!(set_builder::state().goal_count,0);set_builder::start();
+ assert!(set_builder::state().phase==set_builder::Phase::Preparing);
+ for _ in 0..30_000{set_builder::tick();if matches!(set_builder::state().phase,set_builder::Phase::Complete){break;}}
+ assert!(set_builder::state().count>0);
+ let mut decorated=false;
+ for result in 0..set_builder::state().count{set_builder::select_result(result);set_builder::refresh_summary();let s=set_builder::state();let(capacity,used)=set_builder::slots();assert!((0..7).all(|i|used[i]<=capacity[i]));decorated|=s.results[result].unwrap().jewel_count>0;assert!(s.active_count>0);}
+ assert!(decorated,"unconstrained searches must still try useful jewels");
+ // Hidden and terminal adapter states never start a scheduling window.
+ set_builder::open(&mut ui);set_builder::tick_with_clock(0.0,||panic!("hidden search read clock"));
+ set_builder::start();set_builder::browse();set_builder::tick_with_clock(0.0,||panic!("paused search read clock"));
+ set_builder::start();set_unlock::READY.store(false,std::sync::atomic::Ordering::Relaxed);
+ set_builder::tick_with_clock(0.0,||panic!("unavailable search read clock"));
+ assert!(set_builder::state().phase==set_builder::Phase::Unavailable);
+ assert_eq!(set_builder::state().count,0);
+ set_unlock::READY.store(true,std::sync::atomic::Ordering::Relaxed);
+
+
+}
+
+#[test]
+fn cooperative_batch_deadline_and_terminal_guards(){
+ #[derive(Default)]struct Work{active:bool,slices:usize,stop_at:usize,progress:bool}
+ let active=|w:&Work|w.active;
+ let step=|w:&mut Work|{w.slices+=1;if w.slices==w.stop_at{w.active=false;}w.progress};
+ let mut reads=0;
+ let mut clock=||{reads+=1;0};
+ let mut w=Work::default();set_builder::run_slices(&mut w,&mut clock,active,step);
+ assert_eq!(w.slices,0);assert_eq!(reads,0,"terminal work must not read scheduling clock");
+ let mut w=Work{active:true,progress:true,..Work::default()};
+ set_builder::run_slices(&mut w,||0,active,step);assert_eq!(w.slices,8,"frozen clock must be capped");
+ let mut ticks=[100,101,99].into_iter();let mut w=Work{active:true,progress:true,..Work::default()};
+ set_builder::run_slices(&mut w,||ticks.next().unwrap(),active,step);assert_eq!(w.slices,2,"backwards clock ends batch");
+ let mut ticks=[100,10_100,20_100].into_iter();let mut w=Work{active:true,progress:true,..Work::default()};
+ set_builder::run_slices(&mut w,||ticks.next().unwrap(),active,step);assert_eq!(w.slices,2,"stop after first slice crossing deadline");
+ let mut ticks=[0,19_200].into_iter();let mut w=Work{active:true,progress:true,..Work::default()};
+ set_builder::run_slices(&mut w,||ticks.next().unwrap(),active,step);assert_eq!(w.slices,1,"deadline is inclusive");
+ let mut w=Work{active:true,stop_at:1,progress:true,..Work::default()};let mut reads=0;
+ set_builder::run_slices(&mut w,||{reads+=1;0},active,step);assert_eq!(w.slices,1);assert_eq!(reads,1,"terminal transition stops immediately");
+ let mut w=Work{active:true,..Work::default()};
+ set_builder::run_slices(&mut w,||0,active,step);assert_eq!(w.slices,1,"no progress must end batch");
 }

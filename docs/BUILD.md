@@ -80,12 +80,17 @@ MHGU_GAME_DIR=/path/to/owned-game/data python3 tests/arm_gather_map.py
 
 Data/layout checks require prepared local data. The targeted ARM test uses the
 owned dump's `exefs/main` only for import metadata and mocked native UI calls;
-it does not launch the game. `tools/nso.py` is the minimal local NSO helper,
+it does not launch the game. The Set Builder scenario checks dedicated tabs and Back,
+combined skill/socket/jewel rendering, private-file save/rename/reopen, comparison,
+priority-row mouse actions, planning settings and wishlist idempotency. It asserts
+that character/equipment fixture memory remains unchanged. Native eligibility calls
+are mocked, so this does not establish live quest availability or runtime compatibility.
+`tools/nso.py` is the minimal local NSO helper,
 with its upstream notice retained. `tests/arm_smoke.py` also contains historical
 UI scenarios; their compiled preview status is separate from live verification.
 
 The shell build runs the Rust control and inventory unit tests and enforces the
-plugin's 9 MiB individual budget. A budget pass does not prove the user's whole
+plugin's 9 MiB + 64 KiB individual budget (the dedicated Set Builder adds one loader page). A budget pass does not prove the user's whole
 plugin combination fits; account for every loaded NRO and loader headroom.
 
 ## Package the mod

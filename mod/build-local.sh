@@ -28,7 +28,7 @@ rustc +nightly --edition 2024 --test ../tests/gather_filter.rs -o ../build/gathe
 rustc +nightly --edition 2024 --test ../tests/gather_zones.rs -o ../build/gather-zones-tests
 ../build/gather-zones-tests
 
-for module in set_focus set_solver set_player set_unlock set_skills set_builder; do
+for module in set_focus set_solver set_player set_unlock set_skills set_builder set_saved set_workbench; do
   rustc +nightly --edition 2024 --test "../tests/$module.rs" -o "../build/$module-tests"
   "../build/$module-tests"
 done

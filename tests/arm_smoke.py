@@ -1,8 +1,8 @@
 """Run the built ARM NRO's ELF against actual main NSO import metadata and mocked HID/UI."""
-import sys,struct
+import sys,struct,time
 from pathlib import Path
 from elftools.elf.elffile import ELFFile
-from unicorn import Uc,UC_ARCH_ARM,UC_MODE_ARM,UC_HOOK_CODE
+from unicorn import Uc,UC_ARCH_ARM,UC_MODE_ARM,UC_HOOK_CODE,UC_HOOK_INTR
 from unicorn.arm_const import *
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tools'))
 from nso import Nso
@@ -78,6 +78,14 @@ def callback(uc,at,size,ctx):
    drawops.append(('text',[fl(uc.reg_read(UC_ARM_REG_R3)),fl(get(sp)),fl(uc.reg_read(UC_ARM_REG_R2))],(get(sp+4),value)))
  uc.reg_write(UC_ARM_REG_R0,out)
 u.hook_add(UC_HOOK_CODE,callback,begin=STUB,end=STUB+0xffff)
+def system_tick(uc,interrupt,ctx):
+ pc=uc.reg_read(UC_ARM_REG_PC)
+ instruction=struct.unpack('<I',uc.mem_read(pc-4,4))[0]
+ assert instruction==0xef00001e,f'unexpected ARM interrupt {interrupt}: {instruction:#010x} at {pc-4:#x}'
+ ticks=time.perf_counter_ns()*19_200_000//1_000_000_000
+ uc.reg_write(UC_ARM_REG_R0,ticks&0xffffffff)
+ uc.reg_write(UC_ARM_REG_R1,(ticks>>32)&0xffffffff)
+u.hook_add(UC_HOOK_INTR,system_tick)
 def call(at,*args):
  u.reg_write(UC_ARM_REG_SP,STACK+0xf000);u.reg_write(UC_ARM_REG_LR,STOP)
  for reg,value in zip([UC_ARM_REG_R0,UC_ARM_REG_R1,UC_ARM_REG_R2,UC_ARM_REG_R3],args):u.reg_write(reg,value)

@@ -21,3 +21,29 @@ fn setup()->Fake{let mut f=Fake::default();f.words.insert(0x1897f78,SAVE);f.word
 #[test]fn known_locked_ingredient_wins_even_after_unknown(){assert_eq!(recipe_available(None,&[1,2],|i|if i==1{None}else{Some(false)}),Some(false));}
 #[test]fn acquisition_history_overrides_missing_or_inaccessible_quest_sources(){assert_eq!(ingredient_available(Some(false),Some(true)),Some(true));assert_eq!(ingredient_available(None,Some(true)),Some(true));assert_eq!(ingredient_available(Some(true),None),Some(true));assert_eq!(recipe_available(Some(false),&[1],|_|ingredient_available(Some(false),Some(true))),Some(false));}
 #[test]fn no_accessible_modeled_source_is_unknown_without_complete_source_proof(){assert_eq!(ingredient_available(Some(false),Some(false)),None);assert_eq!(ingredient_available(Some(false),None),None);assert_eq!(ingredient_available(None,Some(false)),None);assert_eq!(recipe_available(Some(true),&[1],|_|ingredient_available(Some(false),Some(false))),None);assert_eq!(recipe_available(Some(false),&[1],|_|ingredient_available(Some(false),Some(false))),Some(false));}
+
+#[test]fn planning_stars_are_independent_and_g_rank_uses_separate_hub_levels(){
+ assert!(quest_star_match("Village",1,8,8,4));assert!(!quest_star_match("Village",1,9,8,11));
+ assert!(quest_star_match("Guild",1,4,0,4));assert!(!quest_star_match("Guild",1,5,10,4));
+ assert!(!quest_star_match("Guild",2,1,10,7));assert!(quest_star_match("Guild",2,1,0,8));
+ assert!(!quest_star_match("Guild",2,2,10,8));assert!(quest_star_match("Guild",2,4,0,11));
+ assert!(quest_star_match("Guild",1,7,0,11));assert!(!quest_star_match("Village",2,1,10,11));
+}
+#[test]fn planning_excludes_special_hubs_and_undefined_star_levels(){
+ for hub in ["Event","Permit","Arena",""]{assert!(!quest_star_match(hub,0,1,10,11));}
+ assert!(!quest_star_match("Guild",0,0,10,11));assert!(!quest_star_match("Village",1,11,10,11));
+ assert!(!quest_star_match("Guild",2,5,10,11));assert!(!quest_star_match("Guild",3,1,10,11));
+}
+#[test]fn planning_recipes_filter_indexed_absent_routes_without_claiming_unlocks(){
+ assert_eq!(planning_recipe(&[1,2],|i|if i==1{None}else{Some(false)}),Some(false));
+ assert_eq!(planning_recipe(&[1,2],|_|Some(true)),None);
+ assert_eq!(planning_recipe(&[1,2],|i|if i==1{Some(true)}else{None}),None);
+ assert_eq!(planning_recipe(&[],|_|Some(false)),None);
+}
+#[test]fn automatic_dimension_and_special_quests_use_native_checks(){
+ assert_eq!(quest_override("Village",1,8,255,4),None);
+ assert_eq!(quest_override("Guild",1,5,8,4),Some(false));
+ assert_eq!(quest_override("Guild",1,5,8,255),None);
+ assert_eq!(quest_override("Village",1,9,8,255),Some(false));
+ assert_eq!(quest_override("Event",1,8,8,4),None);
+}

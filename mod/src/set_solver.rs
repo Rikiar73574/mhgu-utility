@@ -560,9 +560,9 @@ impl Solver {
 /// time to other equipment combinations. This is not an optimality proof.
 pub struct DecorationRefiner {
     current: Solution,
-    score: [u32; 10],
+    score: [u32; 13],
     best: Solution,
-    best_score: [u32; 10],
+    best_score: [u32; 13],
     remaining: [u8; BINS],
     capacity: [u8; BINS],
     passes: u8,
@@ -572,7 +572,7 @@ pub struct DecorationRefiner {
     pub work_done: u64,
 }
 impl DecorationRefiner {
-    pub fn new(current: Solution, capacity: [u8; BINS], costs: impl Fn(u32) -> u8, score: [u32; 10]) -> Option<Self> {
+    pub fn new(current: Solution, capacity: [u8; BINS], costs: impl Fn(u32) -> u8, score: [u32; 13]) -> Option<Self> {
         if current.jewel_count as usize > MAX_JEWELS { return None; }
         let mut remaining = capacity;
         for placement in &current.jewels[..current.jewel_count as usize] {
@@ -586,7 +586,7 @@ impl DecorationRefiner {
     }
     /// Returns the latest committed improvement and whether refinement is done.
     /// `evaluate` may update requested totals after full native arithmetic.
-    pub fn tick(&mut self, jewel_count: u32, costs: impl Fn(u32) -> u8, mut evaluate: impl FnMut(&mut Solution) -> Option<[u32; 10]>, budget: u32) -> (Solution, bool) {
+    pub fn tick(&mut self, jewel_count: u32, costs: impl Fn(u32) -> u8, mut evaluate: impl FnMut(&mut Solution) -> Option<[u32; 13]>, budget: u32) -> (Solution, bool) {
         for _ in 0..budget {
             if self.complete { break; }
             if self.work_done >= 8192 {
