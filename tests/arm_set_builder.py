@@ -82,169 +82,146 @@ with tempfile.TemporaryDirectory(prefix='compendium-set-builder-') as folder:
     native(0x54af8c, 1)  # Quest appearance; all modeled sources accessible.
     native(0x54ce08, 1)  # Entry eligibility.
     native(0x3ba50c, 0)  # No downloaded quest resource: stays unknown.
-    fixture_before = bytes(u.mem_read(fixture, 0x100000))
-    writes = []
-    u.hook_add(UC_HOOK_MEM_WRITE, lambda uc, access, address, size, value, ctx:
-               writes.append((address, size)), begin=fixture, end=fixture + 0xfffff)
+
+    fixture_before=bytes(u.mem_read(fixture,0x100000));writes=[]
+    u.hook_add(UC_HOOK_MEM_WRITE,lambda uc,access,address,size,value,ctx:writes.append((address,size)),begin=fixture,end=fixture+0xfffff)
     n['call'](n['symbols']['forge_onInit'])
-    def render():
-        return n['render']()
+    def render():return n['render']()
     def press(bits):
-        n['hid'](0); render(); n['hid'](bits)
-        out = render(); n['hid'](0)
-        return out
-    press(1 << 10)
-    press((1 << 10) | (1 << 12))
-    for _ in range(5):
-        out = press(1 << 7)
-    assert 'Choose activated skills' in out, out
-    assert any('3 owned charms' in text for text in out), out
-    out = press(1 << 2)
-    assert 'Select at least one skill.' in out, out
-    out = press(1 << 4)  # L3 explains the highlighted activation, without selecting it.
-    assert 'Full effect' in out and any('x0.75' in t for t in out) and any('10 frames' in t for t in out), out
-    n['preview']('set-builder-effect.png')
-    out = press(2)
-    assert 'Choose activated skills' in out and '0 / 6 selected' in out, out
-    n['preview']('set-builder-effects-picker.png')
-    out = press(1)  # Alphabetically first positive activation: Acrobat.
-    assert '1 / 6 selected' in out and 'Acrobat' in out, out
-    out = press(1 << 2)
-    assert 'Checking progression availability (not crafting stock)...' in out, out
-    out = press(1 << 2)  # Pause during preparation and resume.
-    assert 'Y  Search / resume' in out, out
-    out = press(1 << 2)
-    refining = False
+        n['hid'](0);render();n['hid'](bits);render();n['hid'](0);return render()
+    def click(text,index=0):
+        op=[o for o in n['drawops']if o[0]=='text'and o[2][1]==text][index]
+        n['touch']=((op[1][0]+3)/1.125,(op[1][1]+3-45)/1.125);render();n['touch']=None;return render()
+    press(1<<10);press((1<<10)|(1<<12))
+    for _ in range(5):out=press(1<<7)
+    assert 'Navigation'in out and 'Open Set Builder'in out and 'Required skills (optional)'not in out,out
+    out=press(1<<6);assert 'Armor sets'in out and 'Navigation'in out,out
+    out=press(1<<7);assert 'Open Set Builder'in out and 'Required skills (optional)'not in out,out
+    out=press(1<<7);assert 'Item list'in out and 'Navigation'in out,out
+    out=press(1<<6);assert 'Open Set Builder'in out and 'Required skills (optional)'not in out,out
+    n['preview']('native-set-builder-entry.png')
+    out=press(1)
+    assert 'Required skills (optional)'in out and 'Saved builds'in out and 'Navigation'not in out,out
+    assert any('3 owned charms'in t for t in out),out
+    # Dedicated tabs use LB/RB, retaining the ordinary Utility on Back.
+    out=press(1<<7);assert 'Set Builder settings'in out,out
+    ctrl=[True]
+    def ctrl_key(uc,at,size,ctx):
+        if n['imports'].get(at)=='forge_input_isCtrlDown':uc.reg_write(UC_ARM_REG_R0,int(ctrl[0]))
+    u.hook_add(UC_HOOK_CODE,ctrl_key,begin=n['STUB'],end=n['STUB']+0xffff)
+    n['key_pressed'].add(9);out=render();n['key_pressed'].clear();ctrl[0]=False;render()
+    assert 'Typing searches directly'not in out,'Settings shortcut opened an invisible search editor'
+    if '--priority-only'in sys.argv:
+        out=click('Skill Priorities')
+        storage=path.with_suffix('.set-builder.txt');before=storage.read_text()if storage.exists()else None
+        out=press(1<<14)
+        after=storage.read_text()if storage.exists()else None
+        assert after==before,'Left/Right must not swap whole priorities'
+        print('PASS: numbered priority slots stay fixed')
+        sys.exit(0)
+    if '--search-only'not in sys.argv and '--recommendation-only'not in sys.argv:
+        # Settings have separate Requirements and numeric Priority 1..4 pages.
+        out=click('Requirements');assert 'Village stars'in out and 'Hub stars'in out,out
+        assert 'Use automatic native unlock checks'not in out and '<'not in out and '>'not in out,out
+        n['preview']('native-set-builder-requirements.png')
+        out=click('Village stars');assert 'Village progression'in out and 'Automatic'in out,out
+        n['preview']('native-set-builder-dropdown.png')
+        out=click('8 stars');assert 'Requirements'in out,out
+        storage=path.with_suffix('.set-builder.txt');prefs=storage.read_text();assert 'village=8\n'in prefs and 'hub=255\n'in prefs,prefs
+        out=click('Hub stars');out=click('4 stars');prefs=storage.read_text();assert 'village=8\n'in prefs and 'hub=4\n'in prefs,prefs
+        out=click('Village stars');out=click('Automatic');prefs=storage.read_text();assert 'village=255\n'in prefs and 'hub=4\n'in prefs,prefs
+        out=click('Hub stars');out=press(1<<15);out=press(2);assert 'Requirements'in out,out
+        assert 'hub=4\n'in storage.read_text(),'Cancel changed the option'
+        out=click('Hub stars');out=click('Automatic');assert 'hub=255\n'in storage.read_text()
+        out=click('Owned armor only');assert 'owned_only=1\n'in storage.read_text()
+        out=click('Owned armor only');assert 'owned_only=0\n'in storage.read_text()
+        out=press(2);assert 'Set Builder settings'in out,out
+        out=click('Skill Priorities');assert all('Priority '+str(i)in out for i in range(1,5)),out
+        assert 'Damage'not in out and 'Weapon support'not in out,out
+        n['preview']('native-set-builder-priorities.png')
+        out=click('Priority 1');before=[t for t in out if re.match(r'^\d+\. ',t)];assert len(before)>=4,out
+        before_order=storage.read_text();press(2);out=press(1<<14)
+        assert storage.read_text()==before_order,'Priority slots moved as whole sections'
+        out=click('Priority 1')
+        names=lambda rows:[r.split('. ',1)[1]for r in rows]
+        out=click('Move to priority...',0);out=click('Priority 4');prefs=storage.read_text();assert 'groups=default'not in prefs,prefs
+        out=press(2);assert 'Skill Priorities'in out,out
+        out=click('Priority 4');assert names(before)[0]in names([t for t in out if re.match(r'^\d+\. ',t)]),out
+        out=press(2);out=click('Priority 2');second=[t for t in out if re.match(r'^\d+\. ',t)];moved=names(second)[0]
+        out=click('Move to priority...',0);out=click('Priority 1');out=press(2);out=click('Priority 1')
+        assert moved in names([t for t in out if re.match(r'^\d+\. ',t)]),out
+        out=press(2);out=press(2);assert 'Set Builder settings'in out,out
+        out=click('Reset Set Builder Settings');prefs=storage.read_text();assert 'groups=default\n'in prefs and 'trees=default\n'in prefs,prefs
+        assert 'village=255\n'in prefs and 'hub=255\n'in prefs,prefs
+        n['preview']('native-set-builder-settings.png')
+        print('PASS: separate Requirements/Priorities, independent Automatic dropdowns, cancel, checkbox, skill reassignment and standalone Reset',flush=True)
+        if '--settings-only'in sys.argv:
+            assert not writes and bytes(u.mem_read(fixture,0x100000))==fixture_before
+            sys.exit(0)
+    out=press(1<<7);assert 'Saved builds'in out,out
+    out=press(2);assert 'Required skills (optional)'in out,out
+    out=press(2);assert 'Navigation'in out and 'Open Set Builder'in out,out
+    # Mouse confirmation uses the same entry as B/Enter.
+    out=click('Open Set Builder')
+    assert 'Required skills (optional)'in out and 'Navigation'not in out,out
+    if '--navigation-only'in sys.argv:
+        assert not writes and bytes(u.mem_read(fixture,0x100000))==fixture_before
+        print('PASS: LB/RB visits and leaves landing page without opening builder; B and mouse confirmation enter; Back restores landing; native memory unchanged')
+        sys.exit(0)
+    if '--recommendation-only'in sys.argv:
+        assert any('No required skills:'in t for t in out),out
+        n['preview']('native-set-builder-optional-skills.png')
+        press(1<<2)
+        for frame in range(2500):
+            out=render()
+            if any(t.startswith('Build 1 /')for t in out):break
+        else:raise AssertionError(('No unconstrained recommendation',out))
+        assert 'Pieces, sockets & jewels'in out and 'Skills from this build'in out,out
+        n['preview']('native-set-builder-recommendations.png')
+        assert not writes and bytes(u.mem_read(fixture,0x100000))==fixture_before
+        print('PASS: no required skills finds native rendered recommendations; SVC clock executes; character memory unchanged')
+        sys.exit(0)
+    press(1);press(1<<2)
     for frames in range(2500):
-        out = render()
-        if any(text.startswith('Build 1 /') for text in out):
-            break
-        refining |= "Refining decorations for this build..." in out
-        assert not any('capacity exceeded' in text.lower() or 'snapshot or search data is invalid' in text for text in out), out
-    else:
-        raise AssertionError(('No result before frame budget', out))
-    # Pause so browsing and wishlist assertions use a stable best-ranked solution.
-    if 'Y  Pause search' in out:
-        out = press(1 << 2)
-    assert any(t in out for t in ('No talisman required','Equipment box #1','Equipment box #1000','Equipment box #1901')), out
-    assert any(re.fullmatch(r'Acrobat  (\d+) / 10', text) and int(re.fullmatch(r'Acrobat  (\d+) / 10', text)[1]) >= 10 for text in out), out
-    assert out.count('Missing') == 5, out
-    assert refining, 'first result was exposed before its decoration pass'
-    slots = next(re.fullmatch(r'Base defense \d+   Slots: (\d+) used / (\d+) total', text) for text in out if text.startswith('Base defense '))
-    assert 0 < int(slots[1]) <= int(slots[2]), out
-    assert any('All skills (' in text for text in out), out
-    assert any('x0.75' in text for text in out), out
-    n['preview']('set-builder-effects-results.png')
-    out = press(1 << 5)
-    rows = path.read_text().splitlines()
-    assert len(rows) == 5 and all(row.startswith('armor:') for row in rows), rows
-    assert len(set(rows)) == 5, rows
-    press(1 << 5)
-    assert path.read_text().splitlines() == rows, 'Adding missing armor was not idempotent'
-    # Resuming keeps exploring and preserves or improves the requested fit.
-    # This real-catalog fixture need not fill the retained pool quickly.
-    initial_points = int(next(re.fullmatch(r'Acrobat  (\d+) / 10', text)[1]
-                              for text in out if re.fullmatch(r'Acrobat  (\d+) / 10', text)))
-    press(1 << 2)
-    for _ in range(32):
-        out = render()
-        summary = next((text for text in out if ' builds found    ' in text), '')
-        if summary and int(summary.split()[0]) >= 2:
-            break
-    # Equivalent armor/charm loadouts now share a skill-variation representative.
-    # A second variation is not guaranteed within this short enumeration window.
-    for _ in range(32):
-        out = render()
-    summary = next(text for text in out if ' builds found    ' in text)
-    pool_size, steps = map(int, re.match(r'(\d+) builds found    (\d+) search steps', summary).groups())
-    assert 1 <= pool_size <= 24, out
-    assert 'Y  Pause search' in out, out
-    before = steps
-    for _ in range(8):
-        out = render()
-    summary = next(text for text in out if ' builds found    ' in text)
-    assert int(summary.split()[3]) > before, out
-    out = press(1 << 2)
-    best_points = int(next(re.fullmatch(r'Acrobat  (\d+) / 10', text)[1]
-                           for text in out if re.fullmatch(r'Acrobat  (\d+) / 10', text)))
-    assert best_points >= 10, (initial_points, best_points, out)
-    out = press(1 << 14)
-    assert any(text.startswith(f'Build {min(2,pool_size)} /') for text in out), out
-    out = press(1 << 12)
-    assert any(text.startswith('Build 1 /') for text in out), out
-    out = press(1)
-    assert 'Crafting materials' in out, out
-    out = press(2)
-    assert 'Owned talisman' in out, out
-    slot_summary = next(re.fullmatch(r'Base defense \d+   Slots: (\d+) used / (\d+) total', text)
-                        for text in out if text.startswith('Base defense '))
-    for _ in range(5):
-        press(1 << 15)
-    out = press(1)
-    assert 'Decoration placement' in out, out
-    if int(slot_summary[1]) == 0:
-        assert 'No decorations required.' in out, out
-    else:
-        assert 'No decorations required.' not in out, out
-    placement = next(text for text in out if all(part in text for part in ('Head', 'Chest', 'Arms', 'Waist', 'Legs', 'Charm', 'Weapon')))
-    per_piece = re.findall(r'(Head|Chest|Arms|Waist|Legs|Charm|Weapon) ?(\d+)/(\d+)', placement)
-    assert len(per_piece) == 7, out
-    assert all(int(used) <= int(capacity) for _, used, capacity in per_piece), out
-    assert sum(int(used) for _, used, _ in per_piece) == int(slot_summary[1]), out
-    assert sum(int(capacity) for _, _, capacity in per_piece) == int(slot_summary[2]), out
-    for bits in (1 << 15, 1 << 14, 1 << 13, 1 << 12):
-        press(bits)  # Both empty and populated jewel lists stay bounded.
-    out = press(2)
-    assert 'Owned talisman' in out, out
-    # The seventh result card exposes every contributing tree, including
-    # unrequested inactive/negative points that the compact summary omits.
-    press(1 << 15)
-    out = press(1)
-    assert 'All skills' in out and 'Skill tree' in out and 'Activated skill / effect' in out and 'Points' in out, out
-    assert 'Nimbleness' in out and 'Acrobat' in out, out
-    all_points=out[:]
-    assert any(re.fullmatch(r'[+-]\d+', text) for text in out), out
-    page = next(text for text in out if re.fullmatch(r'\d+ active skills   \d+ skill trees   Page \d+ / \d+', text))
-    n['preview']('set-builder-effects-all-skills.png')
-    out = press(1)
-    assert 'Full effect' in out and 'Acrobat' in out, out
-    out = press(2)
-    assert 'All skills' in out, out
-    trees = int(page.split()[3])
-    assert trees > 1, out
-    pages = int(page.rsplit(' ', 1)[1])
-    for _ in range(pages + 1):
-        out = press(1 << 14)
-        all_points.extend(out)
-    assert 'Not active' in all_points, all_points
-    assert any(text.endswith(f'Page {pages} / {pages}') for text in out), out
-    for _ in range(pages + 1):
-        out = press(1 << 12)
-    assert any(text.endswith(f'Page 1 / {pages}') for text in out), out
-    out = press(2)
-    assert any(text.startswith('Build 1 /') for text in out), out
-    out = press(1 << 4)
-    assert 'All skills' in out and 'Crafting materials' not in out, out
-    out = press(2)
-    # A real compiled-ARM call to ImGui's clock enforces the 60-second cutoff.
-    n['gui_time']=100.0
-    press(1 << 2)  # Resume the paused search at a known clock value.
-    n['gui_time']=160.0
-    out=render()
-    assert '60-second search finished. Best variations so far; Y continues.' in out, out
-    assert any('60.0 / 60s' in text for text in out), out
-    out = press(2)
-    assert 'Choose activated skills' in out and '1 / 6 selected' in out, out
-    out = press(2)
-    assert 'MHGU Utility' not in out, out
-    press(1 << 10)
-    out = press((1 << 10) | (1 << 12))
-    assert 'Choose activated skills' in out, out
-    out = press(1 << 6)
-    assert 'Armor sets' in out and 'Choose activated skills' not in out, out
-    assert not writes, writes
-    assert bytes(u.mem_read(fixture, 0x100000)) == fixture_before
-    assert native_calls.get(0x13f03c, 0) >= 4 and native_calls.get(0x54ce08, 0) > 0, native_calls
-    print('ARM Set Builder passed: town capture, 3 charms in full physical box, skill/search/pause, '
-          'missing stock, result pagination/details/back, jewel browsing/slot allocation/L3 shortcut, all skill trees/activation/paging, 5 missing wishlist pieces/idempotence, '
-          'no fixture writes; preparation frames:', frames + 1)
+        out=render()
+        if any(t.startswith('Build 1 /')for t in out):break
+    else:raise AssertionError(('No build',out))
+    press(1<<2)
+    out=render();assert 'Pieces, sockets & jewels'in out and 'Skills from this build'in out,out
+    assert 'Weapon'in out and 'Charm'in out and 'Missing'in out,out
+    assert any('Acrobat'in t and '/ 10'in t for t in out),out
+    n['preview']('native-set-builder-results.png')
+    print('PASS: dedicated navigation and complete result rendering',flush=True)
+    # The visible gear/skill view must never enter the obsolete hidden jewel mode.
+    for _ in range(5):press(1<<15)
+    out=press(1);assert 'Skills from this build'in out and 'Pieces, sockets & jewels'in out,out
+    out=press(2)
+    for _ in range(5):press(1<<13)
+    out=press(1);assert 'Crafting materials'in out,out
+    out=press(2);assert 'Pieces, sockets & jewels'in out,out
+    out=press(1<<5);rows=path.read_text().splitlines();assert len(rows)==5 and all(r.startswith('armor:')for r in rows),rows
+    press(1<<5);assert path.read_text().splitlines()==rows,'Wishlist add was not idempotent'
+    out=click('Compare');assert any('pinned'in t for t in out),out
+    out=click('Compare');assert 'Compare complete loadouts'in out,out
+    out=click('Back to result');assert 'Pieces, sockets & jewels'in out,out
+    # Persist, reopen and rename through actual ARM filesystem adapters.
+    out=click('Save build');assert any('Build saved'in t for t in out),out
+    storage=path.with_suffix('.set-builder.txt');original=storage.read_text();assert 'builds=1'in original,original
+    out=click('Saved builds');assert 'Acrobat'in out,out
+    out=click('Rename');assert 'Rename saved build'in out,out
+    n['key_pressed'].add(4);render();n['key_pressed'].clear();render() # append a to name
+    n['key_pressed'].add(40);render();n['key_pressed'].clear();render() # finish editing without changing name
+    out=click('Save name');assert 'Saved builds'in out and 'Acrobata'in out,out
+    out=click('Open');assert 'Pieces, sockets & jewels'in out,out
+    assert any('Saved loadout'in t for t in out),out
+    # Current requirement drafts do not modify the stored socket layout.
+    out=click('Settings');out=click('Requirements');out=click('Weapon slots');out=click('0 sockets')
+    out=click('Saved builds');out=click('Open');assert 'Pieces, sockets & jewels'in out,out
+    n['preview']('native-set-builder-saved.png')
+    out=press(2);assert 'Saved builds'in out,out
+    out=click('Settings');out=click('Reset Set Builder Settings')
+    assert 'builds=1\n'in storage.read_text(),'Reset deleted saved builds'
+    # Every memory write went to plugin/host scratch, not native character/equipment.
+    assert bytes(u.mem_read(fixture,0x100000))==fixture_before,(writes[:10],out)
+    assert not writes,writes[:10]
+    print('PASS: compiled ARM dedicated navigation, combined slots/jewels/skills, saved persistence/rename/reopen, frozen sockets, planning settings; character memory unchanged')

@@ -1,3 +1,4 @@
+#[path="set_builder_view.rs"]mod workbench;
 use super::{Ui,Text,catalog,world};
 use core::{fmt::Write,cell::Cell};
 use super::desktop::{self,Action};
@@ -26,6 +27,7 @@ impl Canvas{
 pub(super) fn draw(u:&mut Ui){
  let size=imgui::get_io().DisplaySize;let s=(size.x/1440.0).min(size.y/900.0)*0.85*u.scale as f32/100.0;if s<=0.0{return;}
  let c=Canvas{d:imgui::DrawList::foreground(),f:super::game_ui::font(),s,x:(size.x-1280.0*s)/2.0,y:(size.y-800.0*s)/2.0,click:desktop::pointer(u),desktop:u.desktop,action:Cell::new(Action::None)};
+ if u.builder&&u.detail==usize::MAX{workbench::draw(&c,u);return;}
  // The native model is rendered before Forge. Leave its viewport uncovered.
  let game_scale=(size.x/1280.0).min(size.y/720.0);
  let native=|x:f32,y:f32|{let p=c.v(x,y);[((p.x-(size.x-1280.0*game_scale)/2.0)/game_scale)as i32,((p.y-(size.y-720.0*game_scale)/2.0)/game_scale)as i32]};
@@ -37,17 +39,23 @@ pub(super) fn draw(u:&mut Ui){
  c.text(56.0,16.0,"MHGU Utility",TEXT,20.0);c.text(315.0,17.0,"Back",TEXT,15.0);c.hit(305.0,5.0,95.0,35.0,Action::Back);c.text(1050.0,17.0,"Prev       Next",TEXT,15.0);c.hit(1040.0,5.0,80.0,35.0,Action::Page(false));c.hit(1120.0,5.0,95.0,35.0,Action::Page(true));
  c.line(190.0,51.0,190.0,748.0,EDGE);c.text(18.0,70.0,"Navigation",MUTED,14.0);
  for(i,name)in["Items","Weapons","Locations","Wishlist","Armor","Set Builder"].iter().enumerate(){let y=108.0+i as f32*55.0;c.hit(10.0,y-9.0,170.0,44.0,Action::Tab(i));if i==u.tab as usize{c.card(10.0,y-9.0,170.0,44.0,true);for row in 0..5{let width=(5-row)as f32;c.rect(20.0,y+6.0+row as f32, width,1.0,GOLD);c.rect(20.0,y+6.0-row as f32,width,1.0,GOLD);}}c.text(38.0,y,name,if i==u.tab as usize{GOLD}else{TEXT},20.0);}
- c.hint(18.0,420.0,"LB / RB",CYAN,16.0);c.text(18.0,445.0,"Switch section",MUTED,14.0);c.button(3,18.0,656.0,"Select");c.button(2,18.0,685.0,"Back");c.button(1,18.0,714.0,"Search");
+ c.hint(18.0,420.0,"LB / RB",CYAN,16.0);c.text(18.0,445.0,"Switch section",MUTED,14.0);c.button(3,18.0,656.0,"Select");c.button(2,18.0,685.0,"Back");if u.tab!=5{c.button(1,18.0,714.0,"Search");}
  let mut t=Text::new();let _=write!(t,"{}",if u.builder&&u.detail==usize::MAX{"Set Builder"}else if super::item::active(u){"Item sources"}else if super::armor::active(u){"Armor"}else if super::weapon::active(u){"Weapon details"}else{["Item list","Weapon trees","Locations","Wishlist","Armor","Set Builder"][u.tab as usize]});c.text(211.0,62.0,t.str(),CYAN,23.0);
- let mut q=Text::new();if u.len==0&&!u.typing&&!u.pc_search{let _=write!(q,"Type to search...");}else{if u.pc_search{let cursor=u.editor.cursor.min(u.len);let _=write!(q,"Search: {}|{}",core::str::from_utf8(&u.query[..cursor]).unwrap_or(""),core::str::from_utf8(&u.query[cursor..u.len]).unwrap_or(""));}else{let _=write!(q,"Search: {}{}",core::str::from_utf8(&u.query[..u.len]).unwrap_or(""),if u.typing{"_"}else{""});}}c.card(735.0,55.0,522.0,38.0,u.pc_search);c.hit(735.0,55.0,522.0,38.0,Action::Search);c.clip(744.0,58.0,502.0,30.0);let caret=if u.pc_search{super::game_ui::width(17.0,"Search: ")+super::game_ui::width(17.0,core::str::from_utf8(&u.query[..u.editor.cursor.min(u.len)]).unwrap_or(""))}else{0.0};let offset=(caret-475.0).max(0.0);if u.pc_search{let(l,r)=u.editor.selection();if l<r{let start=super::game_ui::width(17.0,"Search: ")+super::game_ui::width(17.0,core::str::from_utf8(&u.query[..l]).unwrap_or(""))+if u.editor.cursor==l{super::game_ui::width(17.0,"|")}else{0.0};let width=super::game_ui::width(17.0,core::str::from_utf8(&u.query[l..r]).unwrap_or(""));c.rect(748.0+start-offset,62.0,width,23.0,0xff795e37);}}c.text(748.0-offset,64.0,q.str(),MUTED,17.0);c.endclip();
+ if u.tab!=5{let mut q=Text::new();if u.len==0&&!u.typing&&!u.pc_search{let _=write!(q,"Type to search...");}else{if u.pc_search{let cursor=u.editor.cursor.min(u.len);let _=write!(q,"Search: {}|{}",core::str::from_utf8(&u.query[..cursor]).unwrap_or(""),core::str::from_utf8(&u.query[cursor..u.len]).unwrap_or(""));}else{let _=write!(q,"Search: {}{}",core::str::from_utf8(&u.query[..u.len]).unwrap_or(""),if u.typing{"_"}else{""});}}c.card(735.0,55.0,522.0,38.0,u.pc_search);c.hit(735.0,55.0,522.0,38.0,Action::Search);c.clip(744.0,58.0,502.0,30.0);let caret=if u.pc_search{super::game_ui::width(17.0,"Search: ")+super::game_ui::width(17.0,core::str::from_utf8(&u.query[..u.editor.cursor.min(u.len)]).unwrap_or(""))}else{0.0};let offset=(caret-475.0).max(0.0);if u.pc_search{let(l,r)=u.editor.selection();if l<r{let start=super::game_ui::width(17.0,"Search: ")+super::game_ui::width(17.0,core::str::from_utf8(&u.query[..l]).unwrap_or(""))+if u.editor.cursor==l{super::game_ui::width(17.0,"|")}else{0.0};let width=super::game_ui::width(17.0,core::str::from_utf8(&u.query[l..r]).unwrap_or(""));c.rect(748.0+start-offset,62.0,width,23.0,0xff795e37);}}c.text(748.0-offset,64.0,q.str(),MUTED,17.0);c.endclip();}
  if u.tab==4&&!u.builder{for(i,label)in ["All","LR","HR","GR"].iter().enumerate(){let x=430.0+i as f32*69.0;c.card(x,57.0,61.0,34.0,u.armor_rank==i as i8-1);c.text(x+12.0,64.0,label,TEXT,18.0);c.hit(x,57.0,61.0,34.0,Action::ArmorRank(i as i8-1));}}
  if u.tab==2{for(i,rank)in["LR","HR","GR"].iter().enumerate(){let x=465.0+i as f32*75.0;c.card(x,57.0,64.0,34.0,i==u.rank as usize);c.hit(x,57.0,64.0,34.0,Action::Rank(i));c.text(x+18.0,64.0,rank,if i==u.rank as usize{CYAN}else{TEXT},18.0);}}
  c.line(205.0,105.0,1264.0,105.0,EDGE);c.clip(205.0,110.0,1059.0,635.0);
- if u.builder&&u.detail==usize::MAX&&!u.typing{set_builder_view(&c,u);}else if u.typing{keyboard(&c,u);}else if u.detail!=usize::MAX{details(&c,u);}else if u.tab==1&&u.weapon>=0{tree(&c,u);}else if u.tab==2&&u.location>=0{gather(&c,u);}else if u.tab==1||u.tab==2{grid(&c,u);}else if u.tab==3&&u.planner{quest_plan(&c);}else if u.tab==3{wishlist_view(&c,u);}else if u.tab==4{armor_list(&c,u);}else if u.tab==0&&u.item_category<0&&u.len==0{item_categories(&c,u);}else{items(&c,u);}
+ if u.typing{keyboard(&c,u);}else if u.detail!=usize::MAX{details(&c,u);}else if u.tab==1&&u.weapon>=0{tree(&c,u);}else if u.tab==2&&u.location>=0{gather(&c,u);}else if u.tab==1||u.tab==2{grid(&c,u);}else if u.tab==3&&u.planner{quest_plan(&c);}else if u.tab==3{wishlist_view(&c,u);}else if u.tab==4{armor_list(&c,u);}else if u.tab==5{builder_entry(&c);}else if u.tab==0&&u.item_category<0&&u.len==0{item_categories(&c,u);}else{items(&c,u);}
  c.endclip();c.line(0.0,755.0,1280.0,755.0,EDGE);
- c.hint(210.0,768.0,if u.pc_search{"Type: search     Up / Down: results     Left / Right: caret     Ctrl+A: all"}else if u.builder&&u.detail==usize::MAX{if super::set_builder::state().effect.is_some(){"Up / Down: scroll     Left / Right: page     A: back"}else if super::set_builder::state().skills{"Up / Down: skill     Left / Right: page     B: full effect     A: build"}else if super::set_builder::state().show_results{"Left / Right: build   Up / Down: piece   B: details   R3: wishlist   Y: pause"}else{"Up / Down: skill   B: select   L3: full effect   Y: search   A: back"}}else if super::armor::active(u)&&u.armor_overview{"Left / Right: overview / piece     Up / Down: skill     R3: add set"}else if super::armor::active(u){"Left / Right: set piece     Up / Down: material     B: sources     R3: piece     Y: add set"}else if u.tab==4&&u.detail==usize::MAX{"D-pad: armor     Y: hunter type     L3: gender     LT / RT: rank     B: details"}else if super::item::active(u){"Left / Right: source     Up / Down: rows     B: ingredient sources     A: back"}else if super::weapon::active(u){if u.tree_focus{"D-pad: navigate tree     B: materials     A: weapon tree"}else if u.link==usize::MAX{"Left / Right: recipe     Up: tree     Down: materials"}else{"Up / Down: material     B: item sources     A: miniature tree"}}else if super::weapon::controls(u){"Up / Down: link     B: open     A: back"}else if u.tab==2&&u.location>=0{"Left / Right: zone     LT / RT: LR / HR / GR     B: item details"}else if u.tab==2{"D-pad: location     LT / RT: LR / HR / GR     B: browse zones"}else if u.tab==1&&u.weapon>=0{"Up / Down: column     Left / Right: upgrades     LT / RT: family     B: details"}else if u.planner&&super::quest::state().group!=usize::MAX{"Up / Down: eligible material     B: sources     A: quest route"}else if u.planner&&super::quest::selected_quest().is_none(){"Up / Down: requirements     Y: refresh     A: wishlist"}else if u.planner{"Left / Right: quest     Up / Down: material     B: sources     Y: refresh     A: wishlist"}else{"D-pad / left stick: navigate     Right stick: scroll details"},TEXT,16.0);
+ c.hint(210.0,768.0,if u.tab==5&&!u.builder{"B: open Set Builder     LB / RB: switch section"}else if u.pc_search{"Type: search     Up / Down: results     Left / Right: caret     Ctrl+A: all"}else if u.builder&&u.detail==usize::MAX{if super::set_builder::state().effect.is_some(){"Up / Down: scroll     Left / Right: page     A: back"}else if super::set_builder::state().skills{"Up / Down: skill     Left / Right: page     B: full effect     A: build"}else if super::set_builder::state().show_results{"Left / Right: build   Up / Down: piece   B: details   R3: wishlist   Y: pause"}else{"Up / Down: skill   B: select   L3: full effect   Y: search   A: back"}}else if super::armor::active(u)&&u.armor_overview{"Left / Right: overview / piece     Up / Down: skill     R3: add set"}else if super::armor::active(u){"Left / Right: set piece     Up / Down: material     B: sources     R3: piece     Y: add set"}else if u.tab==4&&u.detail==usize::MAX{"D-pad: armor     Y: hunter type     L3: gender     LT / RT: rank     B: details"}else if super::item::active(u){"Left / Right: source     Up / Down: rows     B: ingredient sources     A: back"}else if super::weapon::active(u){if u.tree_focus{"D-pad: navigate tree     B: materials     A: weapon tree"}else if u.link==usize::MAX{"Left / Right: recipe     Up: tree     Down: materials"}else{"Up / Down: material     B: item sources     A: miniature tree"}}else if super::weapon::controls(u){"Up / Down: link     B: open     A: back"}else if u.tab==2&&u.location>=0{"Left / Right: zone     LT / RT: LR / HR / GR     B: item details"}else if u.tab==2{"D-pad: location     LT / RT: LR / HR / GR     B: browse zones"}else if u.tab==1&&u.weapon>=0{"Up / Down: column     Left / Right: upgrades     LT / RT: family     B: details"}else if u.planner&&super::quest::state().group!=usize::MAX{"Up / Down: eligible material     B: sources     A: quest route"}else if u.planner&&super::quest::selected_quest().is_none(){"Up / Down: requirements     Y: refresh     A: wishlist"}else if u.planner{"Left / Right: quest     Up / Down: material     B: sources     Y: refresh     A: wishlist"}else{"D-pad / left stick: navigate     Right stick: scroll details"},TEXT,16.0);
  c.hint(18.0,770.0,"F6 / Start + Left",CYAN,14.0);
  desktop::apply(u,c.action.get());
+}
+fn builder_entry(c:&Canvas){
+ c.card(225.0,146.0,1008.0,116.0,true);c.text(247.0,168.0,"Open Set Builder",GOLD,25.0);
+ c.text(247.0,213.0,"Search equipment, adjust skill priorities and manage saved builds.",TEXT,18.0);
+ c.hit(225.0,146.0,1008.0,116.0,Action::Select(0));
+ c.hint(247.0,296.0,"B: open     LB / RB: continue browsing Utility",MUTED,17.0);
 }
 fn keyboard(c:&Canvas,u:&Ui){
  c.text(225.0,125.0,"Search",CYAN,26.0);
@@ -398,83 +406,7 @@ fn quest_candidates(c:&Canvas){
 }
 
 fn skill_effect(id:usize,buffer:&mut[u8;4096])->&str{use super::set_data as data;let Some(&(offset,len))=data::EFFECTS.get(id)else{return "";};let Some(encoded)=data::EFFECT_TEXT.get(offset as usize..offset as usize+len as usize)else{return "";};super::skill_text::decode(encoded,data::EFFECT_PAIRS,buffer).unwrap_or("Effect data unavailable")}
-fn set_builder_view(c:&Canvas,u:&Ui){
- use super::{set_builder as builder,set_data as data,set_player as player};
- builder::refresh_summary();let state=builder::state();let profile=player::snapshot();let mut heading=Text::new();let mut effect=[0;4096];
- if profile.status==player::Status::Ready{let _=write!(heading,"{}   {}   HR {}   {} weapon slots   {} owned charms",if profile.gender==Some(0){"Male"}else{"Female"},if profile.hunter==Some(0){"Blademaster"}else{"Gunner"},profile.hr.unwrap_or(0),profile.weapon_slots.unwrap_or(0),profile.charm_count);}else{let _=write!(heading,"Character snapshot unavailable");}
- c.text(225.0,112.0,heading.str(),GOLD,16.0);
- if let Some(id)=state.effect{set_effect(c,id);return;}
- if !state.show_results{
-  c.text(225.0,150.0,"Choose activated skills",CYAN,20.0);c.text(750.0,150.0,"Minimum skills",CYAN,20.0);
-  let start=u.selected/builder::SKILL_PAGE*builder::SKILL_PAGE;
-  for i in start..(start+builder::SKILL_PAGE).min(u.count){let id=u.results[i]as usize;let a=&data::ACTIVATIONS[id];let y=190.0+(i-start)as f32*66.0;
-   c.card(218.0,y,502.0,60.0,i==u.selected);c.hit(218.0,y,502.0,60.0,Action::BuilderSelect(id));
-   c.text(233.0,y+8.0,if builder::selected(id){"[x]"}else{"[ ]"},GOLD,17.0);c.clip(276.0,y,430.0,36.0);c.text(277.0,y+8.0,a.name,TEXT,17.0);c.endclip();c.clip(277.0,y+28.0,430.0,31.0);c.paragraph(277.0,y+28.0,425.0,skill_effect(id,&mut effect),MUTED,12.0,0,2);c.endclip();
-  }
-  if u.count==0{c.text(230.0,200.0,"No matching skills. Edit the search above.",MUTED,17.0);}
-  for i in 0..state.goal_count{let id=state.goals[i];let a=&data::ACTIVATIONS[id];let y=190.0+i as f32*64.0;c.card(742.0,y,506.0,59.0,false);c.hit(742.0,y,506.0,59.0,Action::BuilderEffect(id));c.text(756.0,y+7.0,a.name,GOLD,18.0);c.clip(756.0,y+29.0,478.0,30.0);c.paragraph(756.0,y+29.0,474.0,skill_effect(id,&mut effect),MUTED,12.0,0,2);c.endclip();}
-  let mut count=Text::new();let _=write!(count,"{} / 6 selected",state.goal_count);c.text(752.0,584.0,count.str(),MUTED,17.0);
-  c.card(742.0,612.0,506.0,45.0,false);c.hint(757.0,625.0,"Y  Search available armor",GOLD,19.0);c.hit(742.0,612.0,506.0,45.0,Action::BuilderStart);
-  c.text(752.0,663.0,"All owned charms considered. Missing materials allowed.",MUTED,13.0);
-  c.clip(220.0,679.0,1035.0,44.0);c.text(225.0,686.0,state.status,MUTED,16.0);c.endclip();return;
- }
- let mut progress=Text::new();let _=write!(progress,"{} builds found    {} search steps    {} / 5 variations    {:.1} / 60s",state.count,state.visited,state.search.variations,state.search.elapsed);c.text(225.0,151.0,progress.str(),CYAN,19.0);
- c.clip(220.0,181.0,1035.0,34.0);c.text(225.0,187.0,state.status,MUTED,16.0);c.endclip();
- if state.phase==builder::Phase::Preparing{let mut line=Text::new();let (done,total)=super::set_unlock::progress();let _=write!(line,"Quests: {} / {}   Armor and jewels: {} / {}",done,total,state.progress,super::armor_data::ARMOR.len()+data::DECO.len());c.text(235.0,270.0,line.str(),TEXT,19.0);}
- if let Some(result)=state.results.get(state.result).filter(|_|state.result<state.count).and_then(|r|r.as_ref()){
-  if state.skills{set_skills(c);return;}if state.jewels{set_jewels(c);return;}
-  let mut number=Text::new();let _=write!(number,"Build {} / {}",state.result+1,state.count);c.text(225.0,227.0,number.str(),GOLD,21.0);
-  c.hit(219.0,220.0,200.0,38.0,Action::BuilderResult(state.result.saturating_sub(1)));c.text(520.0,230.0,"<   Previous / Next   >",MUTED,16.0);c.hit(496.0,220.0,200.0,38.0,Action::BuilderResult((state.result+1).min(state.count-1)));
-  let (capacity,used)=builder::slots();let mut defense=0u32;let mut missing=0;
-  for slot in 0..5{let Some(id)=builder::armor_id(slot)else{continue;};let a=&super::armor_data::ARMOR[id];let owned=builder::owns(id);if !owned{missing+=1;}defense+=u32::from(a.defense);let y=275.0+slot as f32*54.0;
-   c.card(218.0,y,558.0,47.0,slot==state.piece);c.hit(218.0,y,558.0,47.0,Action::Armor(id));c.sprite(super::ui_pixels::ARMOR_ICONS[slot],230.0,y+8.0,29.0);c.clip(272.0,y,317.0,44.0);c.text(274.0,y+8.0,a.name,TEXT,18.0);c.endclip();set_slots(c,600.0,y+11.0,capacity[slot],used[slot]);c.text(680.0,y+10.0,if owned{"Owned"}else{"Missing"},if owned{0xffa9d890}else{GOLD},15.0);
-  }
-  let mut def=Text::new();let _=write!(def,"Base defense {}   Slots: {} used / {} total",defense,used.iter().map(|&n|u32::from(n)).sum::<u32>(),capacity.iter().map(|&n|u32::from(n)).sum::<u32>());c.text(230.0,560.0,def.str(),MUTED,16.0);
-  c.text(804.0,232.0,"Owned talisman",CYAN,19.0);
-  if result.charm==0{c.text(804.0,265.0,"No talisman required",TEXT,17.0);}else{let charm=&profile.charms[result.charm as usize-1];let mut label=Text::new();let _=write!(label,"Equipment box #{}",charm.box_index+1);c.text(804.0,264.0,label.str(),TEXT,17.0);for(i,skill)in charm.skills.iter().filter(|s|s.tree!=0).enumerate(){let mut line=Text::new();let _=write!(line,"{} {:+}",data::TREE_NAMES[skill.tree as usize],skill.points);c.text(804.0,294.0+i as f32*24.0,line.str(),TEXT,17.0);}set_slots(c,804.0,347.0,charm.slots,used[5]);}
-  c.text(804.0,393.0,"Skills from this build",CYAN,19.0);
-  let mut shown=0;for &tree in &state.skill_rows[..state.skill_count]{
-   let p=state.totals.points[tree as usize];let active=builder::activation(tree,p);
-   let threshold=active.map(|i|data::ACTIVATIONS[i].points).or_else(||builder::target(tree)).or_else(||data::ACTIVATIONS.iter().filter(|a|a.tree==tree&&(a.points>0)==(p>0)).min_by_key(|a|a.points.abs()).map(|a|a.points));
-   let name=if active.is_some(){builder::skill_name(tree)}else{data::TREE_NAMES[tree as usize]};let mut line=Text::new();
-   if let Some(target)=threshold{if active.is_some(){let _=write!(line,"{}  {} / {}",name,p,target);}else{let _=write!(line,"{}  {:+} / {}",name,p,target);}}else{let _=write!(line,"{}  {:+}",name,p);}
-   let y=426.0+shown as f32*51.0;c.clip(799.0,y,451.0,49.0);c.text(804.0,y,line.str(),if p<0{0xff8888ee}else if active.is_some(){TEXT}else{MUTED},17.0);
-   if let Some(id)=active{c.paragraph(804.0,y+22.0,440.0,skill_effect(id,&mut effect),MUTED,12.0,0,2);c.hit(799.0,y,451.0,49.0,Action::BuilderEffect(id));}c.endclip();shown+=1;if shown==3{break;}
-  }
-  if state.skill_count>shown{c.text(804.0,581.0,"More points in All skills",MUTED,14.0);}
-  c.card(218.0,598.0,271.0,58.0,state.piece==5);c.hit(218.0,598.0,271.0,58.0,Action::BuilderJewels);
-  let mut jewels=Text::new();let _=write!(jewels,"{}Decorations: {}",if state.piece==5{"B  "}else{""},result.jewel_count);c.hint(230.0,616.0,jewels.str(),CYAN,17.0);
-  c.card(502.0,598.0,274.0,58.0,state.piece==6);c.hit(502.0,598.0,274.0,58.0,Action::BuilderSkills);let mut label=Text::new();let _=write!(label,"{}All skills ({})",if state.piece==6{"B  "}else{"L3  "},state.skill_count);c.hint(514.0,616.0,label.str(),CYAN,17.0);
-
-  c.text(225.0,687.0,if builder::unverified(){"Availability unverified for some equipment."}else{"Progression availability verified."},GOLD,16.0);
-  if missing>0{c.card(802.0,598.0,446.0,42.0,false);c.hint(816.0,610.0,if super::wishlist::failed(){"Wishlist save failed"}else{"R3  Add missing armor to wishlist"},GOLD,17.0);c.hit(802.0,598.0,446.0,42.0,Action::BuilderWish);}
- }
- let active=matches!(state.phase,builder::Phase::Preparing|builder::Phase::Searching);c.card(802.0,685.0,446.0,39.0,false);c.hint(815.0,696.0,if active{"Y  Pause search"}else{"Y  Search / resume"},GOLD,17.0);c.hit(802.0,685.0,446.0,39.0,Action::BuilderStart);
-}
-
-fn set_jewels(c:&Canvas){
- use super::{set_builder as builder,set_data as data};let state=builder::state();let Some(result)=state.results[state.result].as_ref()else{return;};
- c.text(225.0,230.0,"Decoration placement",CYAN,22.0);
- let (capacity,used)=builder::slots();let mut slots=Text::new();for i in 0..7{let _=write!(slots,"{} {}{}/{}",if i==0{""}else{"  "},if i<5{super::armor::SLOTS[i]}else if i==5{"Charm"}else{"Weapon"},used[i],capacity[i]);}c.text(225.0,255.0,slots.str(),MUTED,14.0);
- if result.jewel_count==0{c.text(235.0,285.0,"No decorations required.",TEXT,19.0);}
- for(i,p)in result.jewels[..result.jewel_count as usize].iter().enumerate(){let a=&data::DECO[builder::jewel_id(p.jewel as usize)];let x=218.0+(i/11)as f32*524.0;let y=283.0+(i%11)as f32*39.0;
- c.card(x,y,509.0,35.0,i==state.jewel_row);c.hit(x,y,509.0,35.0,Action::BuilderJewel(i));if let Some(icon)=super::ui_pixels::ITEMS.get(a.entry as usize){c.sprite(*icon as usize,x+7.0,y+5.0,24.0);}
- c.clip(x+40.0,y,341.0,35.0);c.text(x+40.0,y+9.0,super::catalog::ENTRIES[a.entry as usize].name,TEXT,16.0);c.endclip();c.text(x+388.0,y+9.0,if p.gear<5{super::armor::SLOTS[p.gear as usize]}else if p.gear==5{"Charm"}else{"Weapon"},GOLD,15.0);
- }c.hint(225.0,727.0,"B  Item sources       A  Build results",MUTED,16.0);
-}
-
 fn set_slots(c:&Canvas,x:f32,y:f32,total:u8,used:u8){for i in 0..total{let left=x+i as f32*19.0;c.sprite(super::ui_pixels::SLOT,left,y,17.0);if i<used{c.rect(left+6.0,y+6.0,5.0,5.0,GOLD);}}}
-fn set_effect(c:&Canvas,id:usize){use super::{set_builder as builder,set_data as data};let a=&data::ACTIVATIONS[id];let state=builder::state();let mut effect=[0;4096];
- c.text(225.0,166.0,"Full effect",CYAN,20.0);c.text(225.0,211.0,a.name,GOLD,25.0);let mut threshold=Text::new();let _=write!(threshold,"{}   {:+} skill points",data::TREE_NAMES[a.tree as usize],a.points);c.text(225.0,250.0,threshold.str(),MUTED,16.0);
- let lines=c.paragraph(230.0,295.0,1000.0,skill_effect(id,&mut effect),TEXT,19.0,state.effect_line,builder::EFFECT_PAGE);builder::effect_lines(lines);
- let mut progress=Text::new();let _=write!(progress,"Lines {}-{} / {}",state.effect_line+1,(state.effect_line+builder::EFFECT_PAGE).min(lines),lines);c.text(230.0,705.0,progress.str(),MUTED,14.0);
-}
-fn set_skills(c:&Canvas){use super::{set_builder as builder,set_data as data};let state=builder::state();let mut effect=[0;4096];c.text(225.0,230.0,"All skills",CYAN,22.0);c.text(230.0,270.0,"Skill tree",MUTED,16.0);c.text(580.0,270.0,"Activated skill / effect",MUTED,16.0);c.text(1130.0,270.0,"Points",MUTED,16.0);
- let start=state.skill_row/builder::POINTS_PAGE*builder::POINTS_PAGE;for(i,&tree)in state.skill_rows[..state.skill_count].iter().enumerate().skip(start).take(builder::POINTS_PAGE){let y=302.0+(i-start)as f32*75.0;let p=state.totals.points[tree as usize];c.card(218.0,y,1034.0,69.0,i==state.skill_row);c.text(230.0,y+7.0,data::TREE_NAMES[tree as usize],TEXT,17.0);c.clip(578.0,y,540.0,68.0);c.text(580.0,y+7.0,builder::skill_name(tree),if p<0{0xff8888ee}else{GOLD},17.0);
- if let Some(id)=builder::activation(tree,p){c.paragraph(580.0,y+30.0,525.0,skill_effect(id,&mut effect),MUTED,13.0,0,2);c.hit(218.0,y,1034.0,69.0,Action::BuilderEffect(id));}c.endclip();let mut points=Text::new();let _=write!(points,"{:+}",p);c.text(1145.0,y+7.0,points.str(),if p<0{0xff8888ee}else{TEXT},17.0);}
- let mut page=Text::new();let _=write!(page,"{} active skills   {} skill trees   Page {} / {}",state.active_count,state.skill_count,start/builder::POINTS_PAGE+1,state.skill_count.div_ceil(builder::POINTS_PAGE).max(1));c.text(225.0,727.0,page.str(),MUTED,15.0);
-}
-
 fn armor_set_overview(c:&Canvas,u:&Ui,id:usize){use super::{armor,set_builder,set_data};let a=&super::armor_data::ARMOR[id];let set=armor::summary(id);
  c.card(534.0,178.0,268.0,452.0,false);c.text(550.0,194.0,"Full set stats",CYAN,18.0);let mut defense=Text::new();let _=write!(defense,"{} / {} max",set.defense,set.max_defense);c.text(550.0,228.0,"Defense",MUTED,14.0);c.text(650.0,228.0,defense.str(),TEXT,14.0);c.text(550.0,252.0,["Blademaster","Gunner","Both"][a.hunter as usize],TEXT,16.0);
  let mut slots=Text::new();let _=write!(slots,"{} pieces    {} slots total",set.pieces,set.slots);c.text(550.0,285.0,slots.str(),TEXT,15.0);

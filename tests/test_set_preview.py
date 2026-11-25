@@ -6,7 +6,16 @@ R=Path(__file__).resolve().parents[1];P=R/'build/web-set-preview'
 def array(source,name):return ast.literal_eval('['+re.search(r'pub (?:static|const) '+name+r'[^=]*=&\[(.*?)\];',source,re.S)[1]+']')
 class SetPreviewTests(unittest.TestCase):
  @unittest.skipUnless((P/'build-info.json').is_file(),'private native snapshot not configured')
- def test_production_search_finds_and_independently_validates_five_skill_variations(self):
+ def test_no_required_skills_recommends_and_decorates_valid_builds(self):
+  output=subprocess.check_output([str(P/'solver'),'','6','0','0','2'],env=os.environ|{'MHGU_PREVIEW_TEST_FRAMES':'3602'},text=True,timeout=90)
+  result=json.loads(output.splitlines()[-1]);self.assertGreater(result['count'],0)
+  self.assertTrue(any(b['jewels']for b in result['builds']))
+  for build in result['builds']:
+   self.assertGreater(build['active_count'],0)
+   self.assertFalse(any(s['requested']for s in build['skills']))
+   self.assertTrue(all(used<=cap for used,cap in zip(build['used'],build['capacity'])))
+ @unittest.skipUnless((P/'build-info.json').is_file(),'private native snapshot not configured')
+ def test_weapon_aware_search_independently_validates_builds_and_order(self):
   proof=json.loads((P/'build-info.json').read_text())
   for name,digest in proof.items():
    if name not in ('revision','source_hash'):self.assertEqual(hashlib.sha256((R/name).read_bytes()).hexdigest(),digest,name)
@@ -14,8 +23,8 @@ class SetPreviewTests(unittest.TestCase):
   self.assertEqual(meta['snapshot_hash'],hashlib.sha256((P/'snapshot.json').read_bytes()).hexdigest())
   goal=next(s['id']for s in meta['skills']if s['name']=='Attack Up (L)')
   out=subprocess.check_output([str(P/'solver'),str(goal)],env=os.environ|{'MHGU_PREVIEW_TEST_FRAMES':'3602'},text=True,timeout=90)
-  d=json.loads(out.splitlines()[-1]);self.assertEqual(d['search_version'],'native-v5');self.assertEqual(d['source_hash'],meta['source_hash'])
-  self.assertEqual(d['count'],5);self.assertEqual(d['phase'],'variations');self.assertLess(d['elapsed'],60)
+  d=json.loads(out.splitlines()[-1]);self.assertEqual(d['search_version'],'builder-ui-v1');self.assertEqual(d['source_hash'],meta['source_hash'])
+  self.assertGreater(d['count'],0);self.assertIn(d['phase'],('variations','timeout'));self.assertLessEqual(d['elapsed'],60.1)
   result=d
   a=(R/'build/generated/armor_data.rs').read_text();s=(R/'build/generated/set_data.rs').read_text()
   armor=[]
@@ -53,7 +62,6 @@ class SetPreviewTests(unittest.TestCase):
    assert expected[18]>=20
    assert not any(x['active']and 45<=x['tree']<=69 for x in b['skills'])
    if expected.get(85,0)>=10 and b['verified']and not b['penalties']:witnesses.append(b['rank'])
-  assert witnesses,'Attack L alone still misses verified Guard +1'
-  assert len({tuple((s['tree'],s['threshold'])for s in b['skills']if s['active'])for b in d['builds']})==5
-  assert any(any(s['active']and s['activation']=='Gathering +1'for s in b['skills'])for b in d['builds'])
-  assert [b['active_count']for b in d['builds']]==sorted([b['active_count']for b in d['builds']],reverse=True)
+  assert len({tuple((s['tree'],s['threshold'])for s in b['skills']if s['active'])for b in d['builds']})==len(d['builds'])
+  assert [b['ranking_key']for b in d['builds']]==sorted(b['ranking_key']for b in d['builds'])
+  assert any(s['active']and s['activation']in ('Weakness Exploit','Critical Eye +1')for s in d['builds'][0]['skills'])

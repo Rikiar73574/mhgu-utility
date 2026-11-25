@@ -45,12 +45,32 @@ pub fn ingredient_available(source:Option<bool>,acquired:Option<bool>)->Option<b
  if source==Some(true)||acquired==Some(true){Some(true)}else{None}
 }
 
+/// Scenario source coverage only. Hub levels 8..11 mean G1..G4;
+/// special quest categories have no reviewed star meaning here.
+pub fn quest_star_match(hub:&str,rank:u8,stars:u8,village:u8,guild:u8)->bool{
+ if village>10||guild>11||stars==0{return false;}
+ match hub{
+  "Village"=>rank<2&&stars<=10&&stars<=village,
+  "Guild"=>if rank<2{stars<=7&&stars<=guild.min(7)}else{rank==2&&stars<=4&&guild>=8&&stars<=guild-7},
+  _=>false
+ }
+}
+/// None delegates this quest to the character's actual unlock checks.
+pub fn quest_override(hub:&str,rank:u8,stars:u8,village:u8,guild:u8)->Option<bool>{
+ match hub{"Village" if village!=255=>Some(quest_star_match(hub,rank,stars,village,if guild==255{0}else{guild})),"Guild" if guild!=255=>Some(quest_star_match(hub,rank,stars,if village==255{0}else{village},guild)),_=>None}
+}
+/// Planning may exclude an indexed material with no matching scenario route.
+/// Positive source coverage cannot verify native recipe/event/request gates.
+pub fn planning_recipe(materials:&[u16],mut source:impl FnMut(u16)->Option<bool>)->Option<bool>{
+ for &item in materials{if source(item)==Some(false){return Some(false);}}None
+}
+
 #[cfg(not(test))]mod live{
  use super::*;use core::{cell::UnsafeCell,mem,ptr};use crate::{quest,quest_data,set_data};
  const ITEMS:usize=4096;
- struct State{valid:bool,save:u32,gc:u32,actor:u32,progress:usize,materials:[Option<bool>;ITEMS]}
+ struct State{valid:bool,plan:bool,village:u8,guild:u8,save:u32,gc:u32,actor:u32,progress:usize,materials:[Option<bool>;ITEMS]}
  struct Local(UnsafeCell<State>);unsafe impl Sync for Local{}
- static STATE:Local=Local(UnsafeCell::new(State{valid:false,save:0,gc:0,actor:0,progress:0,materials:[None;ITEMS]}));
+ static STATE:Local=Local(UnsafeCell::new(State{valid:false,plan:false,village:0,guild:0,save:0,gc:0,actor:0,progress:0,materials:[None;ITEMS]}));
  struct Direct;impl Memory for Direct{fn word(&self,a:u32)->Option<u32>{Some(word(a))}fn byte(&self,a:u32)->Option<u8>{Some(byte(a))}}
  fn word(p:u32)->u32{unsafe{ptr::read_volatile(p as *const u32)}}fn byte(p:u32)->u8{unsafe{ptr::read_volatile(p as *const u8)}}
  fn identity()->Option<(u32,u32,u32)>{
@@ -65,11 +85,17 @@ pub fn ingredient_available(source:Option<bool>,acquired:Option<bool>)->Option<b
  /// Guard for a prepared cache; false after departure/character replacement.
  pub fn ready()->bool{unsafe{let s=&*STATE.0.get();s.valid&&identity()==Some((s.save,s.gc,s.actor))}}
  pub fn begin()->bool{unsafe{
-  let s=&mut*STATE.0.get();s.valid=false;s.progress=0;s.materials.fill(None);
+  let s=&mut*STATE.0.get();s.valid=false;s.plan=false;s.progress=0;s.materials.fill(None);
   let Some((save,gc,actor))=identity()else{return false;};s.save=save;s.gc=gc;s.actor=actor;
   for source in quest_data::SOURCES{if let Some(v)=s.materials.get_mut(source.item as usize){*v=Some(false);}}
   s.valid=true;true
  }}
+ /// Start a read-only planning cache; no progression state is changed.
+ pub fn begin_plan(village:u8,hub:u8)->bool{
+  if (village!=255&&village>10)||(hub!=255&&hub>11){unsafe{let s=&mut*STATE.0.get();s.valid=false;s.plan=false;}return false;}
+  if !begin(){return false;}unsafe{let s=&mut*STATE.0.get();s.plan=true;s.village=village;s.guild=hub;}true
+ }
+ pub fn planning()->bool{unsafe{(*STATE.0.get()).plan}}
  fn eligible(q:&quest::Quest,actor:u32)->Option<bool>{unsafe{
   if q.entry.contains(&255){return None;}let b=forge::mem::text_addr();
   let mut data=[0u32;68];let bytes=core::slice::from_raw_parts_mut(data.as_mut_ptr()as *mut u8,272);bytes[0x16..0x19].copy_from_slice(&q.entry);
@@ -77,12 +103,12 @@ pub fn ingredient_available(source:Option<bool>,acquired:Option<bool>)->Option<b
   let r=if q.id>=1000000{let manager=word(b+0x188ae38);if !valid(manager){return None;}let lookup:unsafe extern "C" fn(u32,u32)->u32=mem::transmute((b+0x3ba50c)as usize);let r=lookup(manager,q.id);if !valid(r){return None;}r}else{resource.as_ptr()as u32};
   let check:unsafe extern "C" fn(u32,u32)->u32=mem::transmute((b+0x54ce08)as usize);Some(check(r,actor)==1)
  }}
- /// At most sixteen native quest checks per frame. True means preparation is
- /// complete; callers distinguish failure with ready(). No inventory reads.
+ /// At most sixteen quests per frame. Planning uses indexed stars only;
+ /// normal mode uses native checks. Callers distinguish failure with ready().
  pub fn tick()->bool{if !ready(){return false;}unsafe{
-  let s=&mut*STATE.0.get();let f:unsafe extern "C" fn(u32,u32,u32)->u32=mem::transmute((forge::mem::text_addr()+0x54af8c)as usize);
+  let s=&mut*STATE.0.get();
   for i in s.progress..(s.progress+16).min(quest_data::QUESTS.len()){
-   let q=&quest_data::QUESTS[i];let available=if f(q.id,255,0)&255==1{eligible(q,s.actor)}else{Some(false)};
+   let q=&quest_data::QUESTS[i];let override_value=if s.plan{quest_override(q.hub,q.rank,q.stars,s.village,s.guild)}else{None};let available=if let Some(value)=override_value{Some(value)}else{let f:unsafe extern "C" fn(u32,u32,u32)->u32=mem::transmute((forge::mem::text_addr()+0x54af8c)as usize);if f(q.id,255,0)&255==1{eligible(q,s.actor)}else{Some(false)}};
    if available!=Some(false){for source in quest_data::SOURCES{
     // Same exact monster/gather/reward rank matching as quest::covers,
     // applied once per source rather than repeating its per-item scan.
@@ -105,8 +131,13 @@ pub fn ingredient_available(source:Option<bool>,acquired:Option<bool>)->Option<b
   let acquired=native.and_then(|native|{let p=word(forge::mem::text_addr()+0x18583a8);if !valid(p)||native>=4096{None}else{bit(&Direct,p+0x9c,u32::from(native))}});
   ingredient_available(v,acquired)
  }}
+ fn planned_material(item:u16)->Option<bool>{unsafe{
+  if item>=quest::POINT_BASE{return alternatives(quest::point_group(item,quest_data::POINT_GROUPS)?.members.iter().map(|&(member,_)|planned_material(member)));}
+  (*STATE.0.get()).materials.get(item as usize).copied().flatten()
+ }}
  fn recipe(g:u16,materials:&[(u16,u8)])->Option<bool>{
   let mut ids=[0u16;8];if materials.len()>ids.len(){return None;}for(i,&(item,_))in materials.iter().enumerate(){ids[i]=item;}
+  if planning(){return planning_recipe(&ids[..materials.len()],planned_material);}
   recipe_available(gate(&Direct,forge::mem::text_addr(),g),&ids[..materials.len()],material)
  }
  fn prepared()->bool{ready()&&unsafe{(*STATE.0.get()).progress==quest_data::QUESTS.len()}}
@@ -118,6 +149,7 @@ pub fn ingredient_available(source:Option<bool>,acquired:Option<bool>)->Option<b
   if !prepared()||slot>=5||native==0{return None;}
   alternatives(set_data::ARMOR_RECIPES.iter().filter_map(|r|{
    if r.slot!=slot{return None;}let variant=r.native.iter().position(|&id|id==native)?;
+   if planning(){return Some(planning_recipe(&set_data::ARMOR_MATERIALS[r.material as usize..r.material as usize+r.material_count as usize],planned_material));}
    let remembered=unsafe{let s=&*STATE.0.get();bit(&Direct,s.save+0x16c8+u32::from(slot)*0x360,u32::from(r.index)*4+variant as u32)};
    let physical=recipe_available(gate(&Direct,forge::mem::text_addr(),r.gate),&set_data::ARMOR_MATERIALS[r.material as usize..r.material as usize+r.material_count as usize],material);
    // A remembered recipe can resolve missing source data, but cannot

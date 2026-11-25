@@ -7,11 +7,11 @@ pub const MAX_EQUIPMENT:usize=2000;
 #[derive(Clone,Copy,Debug,Default,PartialEq,Eq)]pub struct Skill{pub tree:u8,pub points:i8}
 #[derive(Clone,Copy,Debug,Default,PartialEq,Eq)]pub struct Charm{pub box_index:u16,pub slots:u8,pub skills:[Skill;2]}
 #[derive(Clone,Copy,Debug,Default,PartialEq,Eq)]pub struct OwnedArmor{pub slot:u8,pub native:u16}
-pub struct Snapshot{pub status:Status,pub gender:Option<u8>,pub hunter:Option<u8>,pub weapon_slots:Option<u8>,pub hr:Option<u16>,pub village_stars:Option<u8>,pub capacity:usize,pub owned:[OwnedArmor;MAX_EQUIPMENT],pub owned_count:usize,pub charms:[Charm;MAX_EQUIPMENT],pub charm_count:usize}
+pub struct Snapshot{pub status:Status,pub gender:Option<u8>,pub hunter:Option<u8>,pub weapon_slots:Option<u8>,pub weapon_type:Option<u8>,pub weapon_id:Option<u16>,pub weapon_level:Option<u8>,pub element:Option<u8>,pub status_element:Option<u8>,pub hr:Option<u16>,pub village_stars:Option<u8>,pub capacity:usize,pub owned:[OwnedArmor;MAX_EQUIPMENT],pub owned_count:usize,pub charms:[Charm;MAX_EQUIPMENT],pub charm_count:usize}
 impl Snapshot{
- pub const fn new()->Self{Self{status:Status::Unavailable,gender:None,hunter:None,weapon_slots:None,hr:None,village_stars:None,capacity:0,owned:[OwnedArmor{slot:0,native:0};MAX_EQUIPMENT],owned_count:0,charms:[Charm{box_index:0,slots:0,skills:[Skill{tree:0,points:0};2]};MAX_EQUIPMENT],charm_count:0}}
+ pub const fn new()->Self{Self{status:Status::Unavailable,gender:None,hunter:None,weapon_slots:None,weapon_type:None,weapon_id:None,weapon_level:None,element:None,status_element:None,hr:None,village_stars:None,capacity:0,owned:[OwnedArmor{slot:0,native:0};MAX_EQUIPMENT],owned_count:0,charms:[Charm{box_index:0,slots:0,skills:[Skill{tree:0,points:0};2]};MAX_EQUIPMENT],charm_count:0}}
  pub fn owns(&self,slot:u8,native:u16)->bool{self.status==Status::Ready&&self.owned[..self.owned_count].iter().any(|a|a.slot==slot&&a.native==native)}
- fn invalidate(&mut self,status:Status){self.status=status;self.gender=None;self.hunter=None;self.weapon_slots=None;self.hr=None;self.village_stars=None;self.capacity=0;self.owned_count=0;self.charm_count=0;}
+ fn invalidate(&mut self,status:Status){self.status=status;self.gender=None;self.hunter=None;self.weapon_slots=None;self.weapon_type=None;self.weapon_id=None;self.weapon_level=None;self.element=None;self.status_element=None;self.hr=None;self.village_stars=None;self.capacity=0;self.owned_count=0;self.charm_count=0;}
 }
 /// Reads may fail; a missing byte must never be interpreted as zero stock.
 pub trait Memory{
@@ -52,6 +52,8 @@ fn capture(m:&impl Memory,b:u32,s:&mut Snapshot)->Result<(),Status>{
  // Native weapon types are record tags7..21 (tag12 is the unused weapon5).
  let weapon=pd+0x18;let weapon_bits=m.half(weapon+4).ok_or(unavailable)?;let weapon_id=m.half(weapon+6).ok_or(unavailable)?;
  if u32::from(weapon_bits&31)!=wt+7||weapon_id==0{return Err(invalid);}
+ let weapon_type=NATIVE_WEAPON_TYPES[wt as usize];let weapon_level=(((weapon_bits>>5)&31)+1)as u8;
+ let (element,status_element)=weapon_elements(wt as u16,weapon_id,weapon_level);
  let slots=m.equipment_slots(weapon).ok_or(unavailable)?;if slots>3{return Err(invalid);}
  let flags=m.word(save+0x958).ok_or(unavailable)?;let expansions=m.word(save+0x3614).ok_or(unavailable)?;
  s.capacity=capacity(flags,expansions);if s.capacity>MAX_EQUIPMENT{return Err(Status::CapacityExceeded);}
@@ -77,7 +79,7 @@ fn capture(m:&impl Memory,b:u32,s:&mut Snapshot)->Result<(),Status>{
  }
  // Do not publish a snapshot across character/scene replacement.
  if m.word(b+0x1897f78)!=Some(save)||m.word(b+0x1856fe8)!=Some(bx)||m.word(b+0x188ca48)!=Some(gc)||m.word(b+0x1885b58)!=Some(manager)||m.word(gc+0x30)!=Some(local)||m.word(manager+0x1c+local*4)!=Some(actor)||m.word(actor+0x13c4)!=Some(pd)||m.word(save+0x958)!=Some(flags)||m.word(save+0x3614)!=Some(expansions)||m.byte(gc+0x4c).is_none_or(|v|v>7)||m.byte(pd+0x4d8)!=Some(gender)||m.word(pd+0x14c)!=Some(wt)||m.half(pd+0x554)!=Some(hr)||m.half(weapon+4)!=Some(weapon_bits)||m.half(weapon+6)!=Some(weapon_id)||m.equipment_slots(weapon)!=Some(slots){return Err(Status::Changed);}
- s.gender=Some(gender);s.hunter=Some(hunter);s.weapon_slots=Some(slots);s.hr=Some(hr);s.status=Status::Ready;Ok(())
+ s.gender=Some(gender);s.hunter=Some(hunter);s.weapon_slots=Some(slots);s.weapon_type=Some(weapon_type);s.weapon_id=Some(weapon_id);s.weapon_level=Some(weapon_level);s.element=element;s.status_element=status_element;s.hr=Some(hr);s.status=Status::Ready;Ok(())
 }
 pub fn decode(m:&impl Memory,base:u32,out:&mut Snapshot)->Result<(),Status>{out.invalidate(Status::Unavailable);let r=capture(m,base,out);if let Err(status)=r{out.invalidate(status);}r}
 #[cfg(not(test))]mod live{
@@ -115,3 +117,26 @@ pub fn decode(m:&impl Memory,base:u32,out:&mut Snapshot)->Result<(),Status>{out.
  pub fn snapshot()->&'static Snapshot{unsafe{&*STATE.0.get()}}
 }
 #[cfg(not(test))]pub use live::*;
+
+// Native classes: tools/weapon_data.py (GAME_WEAPONS), preview classes:
+// tools/world.py. Native kind5 is unused; capture excludes it above.
+const NATIVE_WEAPON_TYPES:[u8;15]=[0,2,4,6,12,14,11,1,8,7,13,3,5,10,9];
+/// Resolve an exact native type/id and ONE-BASED upgrade level. The packed
+/// equipment level is zero-based (the same conversion as smithy.rs row+9).
+/// Only structured exact database matches prove absent element/status. The
+/// generator's fallback Stats strings and unmapped native IDs stay unknown.
+/// Dual-element weapons retain their first elemental attribute; an elemental
+/// and status pair is preserved independently (e.g. water/sleep dual blades).
+pub fn weapon_elements(kind:u16,id:u16,level:u8)->(Option<u8>,Option<u8>){
+ let Some(&(_,_,_,node))=crate::weapon_data::GAME_WEAPONS.iter().find(|&&(k,i,l,_)|k==kind&&i==id&&l==level)else{return(None,None);};
+ let Some(weapon)=crate::weapon_data::WEAPONS.get(node)else{return(None,None);};
+ // Affinity is emitted for every exact database match, never for fallback.
+ if !weapon.stats.iter().any(|&(key,_)|key=="Affinity"){return(None,None);}
+ let mut element=0;let mut status=0;
+ for &(key,value) in weapon.stats{
+  let tree=match key{"Fire"=>27,"Water"=>28,"Thunder"=>29,"Ice"=>30,"Dragon"=>31,"Poison"=>1,"Paralysis"=>2,"Sleep"=>3,"Blastblight"=>92,_=>continue};
+  let Some(amount)=value.parse::<u16>().ok()else{return(None,None);};if amount==0{continue;}
+  if (27..=31).contains(&tree){if element==0{element=tree;}}else if status==0{status=tree;}
+ }
+ (Some(element),Some(status))
+}

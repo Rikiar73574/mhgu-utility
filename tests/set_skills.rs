@@ -206,3 +206,72 @@ fn active_skill_signature_ignores_raw_points_and_negative_penalties() {
     points[85] = 10;
     assert_ne!(first, skill_signature(&points, activations.into_iter()));
 }
+
+#[test]
+fn weapon_priorities_prefer_combat_to_unrelated_skill_count(){
+ let p=PriorityProfile::new(0,0,0);
+ let mut combat=Totals{points:[0;206],present:[false;206]};combat.points[18]=20;combat.points[71]=10;
+ let mut utility=Totals{points:[0;206],present:[false;206]};utility.points[18]=20;for t in [131,132,133,134]{utility.points[t]=10;}
+ let activations=[(18,10),(18,15),(18,20),(71,10),(131,10),(132,10),(133,10),(134,10)];
+ assert!(p.rank(&combat,activations.into_iter())<p.rank(&utility,activations.into_iter()));
+ let only_l=p.rank(&combat,[(18,20),(71,10)].into_iter());
+ assert_eq!(p.rank(&combat,activations.into_iter()),only_l,"lower tiers must not be counted twice");
+}
+#[test]
+fn weapon_priorities_require_matching_element_status_and_weapon(){
+ let gs=PriorityProfile::new(0,27,0);
+ assert_eq!(gs.preference(28).0,0);assert_eq!(gs.preference(33).0,0);
+ assert_eq!(gs.preference(27).0,4);assert_eq!(gs.preference(32).0,4);
+ assert_eq!(gs.preference(89).0,0);assert_eq!(gs.preference(85).0,2);
+ let lance=PriorityProfile{weapon:6,..gs};assert_eq!(lance.preference(85).0,2);assert!(lance.preference(85).1>gs.preference(85).1);
+ let horn=PriorityProfile{weapon:5,..gs};assert_eq!(horn.preference(89).0,3);
+ let raw=PriorityProfile{element:0,..gs};assert_eq!(raw.preference(27).0,0);assert_eq!(raw.preference(74).0,0);
+ let poison=PriorityProfile{status:1,..raw};assert_eq!(poison.preference(33).0,4);
+ let blast=PriorityProfile{status:92,..raw};assert_eq!(blast.preference(33).0,0);assert_eq!(blast.preference(92).0,4);
+ assert!(gs.preference(40).1>PriorityProfile{weapon:3,..gs}.preference(40).1);
+}
+
+#[test]
+fn weapon_priority_refinement_rewards_matching_progress_and_rejects_penalties(){
+ let p=PriorityProfile::new(3,27,0);
+ let mut fire=Totals{points:[0;206],present:[false;206]};fire.points[27]=9;
+ let mut water=Totals{points:[0;206],present:[false;206]};water.points[28]=9;
+ let rows=[(27,10),(28,10),(19,-10)];
+ assert!(p.progress(&fire,rows.into_iter())>p.progress(&water,rows.into_iter()));
+ fire.points[27]=10;water.points[28]=10;
+ assert!(p.rank(&fire,rows.into_iter())<p.rank(&water,rows.into_iter()));
+ let clean=p.rank(&fire,rows.into_iter());fire.points[19]=-10;
+ assert!(clean<p.rank(&fire,rows.into_iter()),"same offense must prefer no negative activation");
+}
+
+#[test]
+fn category_order_and_skill_order_change_build_preference(){
+ let mut p=PriorityProfile::new(0,0,0);
+ let mut attack=Totals{points:[0;206],present:[false;206]};attack.points[18]=10;
+ let mut defense=Totals{points:[0;206],present:[false;206]};defense.points[19]=10;
+ let rows=[(18,10),(19,10)];assert!(p.rank(&attack,rows.into_iter())<p.rank(&defense,rows.into_iter()));
+ p.order=[2,0,1,3];assert!(p.rank(&defense,rows.into_iter())<p.rank(&attack,rows.into_iter()));
+ p.order=[0,1,2,3];p.trees[70]=200;
+ let mut expert=Totals{points:[0;206],present:[false;206]};expert.points[70]=10;
+ assert!(p.rank(&expert,[(18,10),(70,10)].into_iter())<p.rank(&attack,[(18,10),(70,10)].into_iter()));
+ assert_eq!(p.preference(77).0,3,"Focus has its own weapon-support category");
+}
+
+#[test]
+fn adrenaline_one_is_defense_and_only_tier_two_counts_as_damage(){
+ let p=PriorityProfile::new(6,0,0);let mut all=Totals{points:[0;206],present:[false;206]};all.points[98]=10;
+ let rows=[(98,10),(98,15)];let first=p.scores(&all,rows.into_iter());assert_eq!(first[0],0);assert!(first[2]>0);
+ all.points[98]=15;let second=p.scores(&all,rows.into_iter());assert!(second[0]>0);assert_eq!(second[2],0);
+}
+
+#[test]
+fn priority_groups_are_user_assignments_not_fixed_category_names(){
+ let mut p=PriorityProfile::new(0,0,0);
+ p.groups[18]=3;
+ assert_eq!(p.preference(18).0,2);
+ p.groups[98]=4;
+ assert_eq!(p.activation_preference(98,10).0,1);
+ assert_eq!(p.activation_preference(98,15).0,1);
+ // An incompatible weapon skill remains irrelevant even with a custom group.
+ p.groups[89]=1;assert_eq!(p.preference(89).0,0);
+}

@@ -47,22 +47,48 @@ the preview; equipped armor and stats stay unchanged.
 
 ### Set Builder
 
-Set Builder provides skill-based armor searches, automatic character settings, every owned charm,
-per-piece decoration placements, and an action to wishlist missing armor.
-Missing crafting stock does not exclude armor. Verified availability is preferred
-between builds with equal skill strength; unconfirmed unlocks remain explicitly
-labelled. Every result gets a bounded jewel-refinement pass that tries single placements,
-swaps and multi-jewel bundles, including sets
-that already meet the requested skills. Results always rank by most positive
-activated skills first; there is no sort setting. Refinement preserves requested
-skills and does not add penalties. Empty slots can remain when no useful
-placement is found within the search budget. Searches keep improving a pool of up to 24 best-found builds; a bounded work
-budget pauses the search, and Y resumes. Bonus skills, penalties, slot usage
-and per-piece gem placement are shown. Mixed-set model previews are not included yet.
+Select Set Builder in the sidebar, then press B / Enter (or click Open Set Builder)
+to open its workspace with **Search**, **Settings** and **Saved builds**.
+Back returns through its views to the general Utility browser. Each result shows
+armor ownership, charm and weapon sockets, exact jewel placements, and every
+contributing skill tree together, including inactive points and penalties.
+Active skills include numerical effects and activation conditions.
 
-| Select desired skills | Suggested build |
+Search uses the equipped weapon's class, element/status and sockets, all owned
+charms, and native armor type, gender and unlock checks. Required skills are optional: leave the list empty to recommend builds using
+your weapon and skill priorities. Selected skills are minimum tiers; stronger
+tiers qualify. Missing crafting materials do not exclude
+armor. Every result receives a bounded jewel-refinement pass, including sets that
+already meet the requested skills. Empty sockets can remain when no beneficial
+placement is found within the budget; results are best-found rather than exhaustive.
+
+Settings has separate **Requirements** and **Skill Priorities** pages. Requirements
+provides Village/Hub dropdowns with independent Automatic options, an owned-armor
+checkbox and a weapon-socket override. Automatic uses your character's unlocks for
+that quest group; explicit stars are planning overrides and do not prove recipe
+or special-quest unlocks. Changes apply to the next search.
+
+Skill Priorities uses numbered **Priority 1–4** slots. The original damage, weapon
+support, comfort and utility groupings are defaults. The four priority slots stay fixed; open a list and
+assign individual skills to a different priority. The standalone
+**Reset Set Builder Settings** button restores defaults without removing saved builds.
+
+Search processes bounded batches within a cooperative 1 ms scheduling window,
+up to eight slices per frame. An individual slice can overrun that window.
+It pauses at 60 seconds or five distinct positive skill combinations; Y resumes.
+Save up to 12 named loadouts, rename/delete/reopen them, compare loadouts, or add
+missing armor to the wishlist. Saved builds retain their original weapon sockets
+and jewel placement; reopening checks compatibility and charm ownership, while a
+fresh search revalidates current availability. Preferences and loadouts use
+`utility_set_builder.txt`, separate from the character save. Mixed-set model
+previews are not included yet.
+
+| Optional required skills | Suggested builds |
 | --- | --- |
-| ![Set Builder preview skill selection](docs/screenshots/current/set-builder-skills.webp) | ![Set Builder preview showing armor, an owned charm and the wishlist action](docs/screenshots/current/set-builder-results.webp) |
+| ![Set Builder skill selection](docs/screenshots/set-builder-v0.5/skills.webp) | ![Set Builder recommendations](docs/screenshots/set-builder-v0.5/results.webp) |
+
+[Workspace, settings and validation](docs/set-builder-v0.5.md). These screenshots
+use the compiled ARM renderer with isolated fixtures, not a live hunt.
 
 ## Controls and details
 
@@ -93,16 +119,16 @@ quantities and rates. Items can list both monster drops and quest rewards.
   breaking the requested skills. This bounded search does not guarantee the best
   possible combination. Choose skills with B, then Y to search or pause.
   L3 (F10 on keyboard) explains the highlighted skill in the picker and opens
-  All skills from build results. Active skills include numeric effect captions;
-  B (Enter) in All skills opens the full effect, with D-pad scrolling and
+  the skill column in build results. Active skills include numeric effect captions;
+  B (Enter) on an active skill opens the full effect, with D-pad scrolling and
   A (Escape) to return. The summary shows bonus skills,
   penalties and inactive skill-point totals; slot icons and decoration placements
   show how armor, charm and weapon slots are used. Left/Right selects
-  a build; Up/Down selects a piece or its decoration placements. R3 adds missing
+  a build; Up/Down selects a piece or skill. R3 adds missing
   armor pieces to the wishlist. A goes back.
   Verified equipment is tried first. Results with incomplete acquisition-source coverage are explicitly marked
   **availability unverified**; these may include armor whose unlock cannot yet be confirmed. Unindexed acquisition paths are never treated as proof that armor is locked. The search keeps the best 24 builds found and continues improving their fit,
-  preferring fewer wasted skill points, fewer gem slots used and more free slots.
+  using the selected skill priorities, then fit, jewel use and free capacity.
   It pauses after 60 seconds or five new active-skill combinations; Y continues
   from the same position. These are best-found results,
   not a claim of global optimality. Full mixed-set
@@ -157,8 +183,10 @@ This source includes the smithy hook compatibility change used with the
 standalone Armor Fusion plugin. The earlier patched build passed both
 load orders. This standalone build passed the complete installed mod stack on
 Linux with stock MHGURecomp commit `a272b61`, using copied saves. See the
-[validation records](docs/validation.md) and [UX validation](docs/ux-validation.md) for the exact artifact and coverage. All plugins share
-Recomp's 12 MiB plugin memory region, including their BSS and loader alignment.
+[validation records](docs/validation.md) and [UX validation](docs/ux-validation.md) for the exact historical artifact and coverage. Older Recomp versions share a
+12 MiB plugin region; newer versions also provide a spill arena. Account for all
+plugins, BSS and loader alignment. Utility's current individual budget is
+9 MiB + 64 KiB; a budget pass does not establish whole-stack compatibility.
 For Modern Weapon Trees and KatSmithy, see the separate
 [smithy compatibility investigation](docs/smithy-compatibility.md): the deferred
 smithy hook is ARM regression tested, while combined plugin capacity and live

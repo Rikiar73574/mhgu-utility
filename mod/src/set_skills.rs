@@ -117,3 +117,69 @@ impl SearchBudget{
   if self.variations>=SEARCH_VARIATIONS{Some(SearchStop::Variations)}else if self.elapsed>=SEARCH_SECONDS{Some(SearchStop::Time)}else{None}
  }
 }
+
+/// Preview policy, not estimated DPS. Weapon order matches the preview selector:
+/// GS, LS, SnS, DB, Hammer, HH, Lance, GL, SA, CB, IG, LBG, HBG, Bow, unknown.
+/// Element/status use native skill-tree IDs; missing weapon data is never guessed.
+#[derive(Clone,Copy,Debug,PartialEq,Eq)]
+pub struct PriorityProfile { pub weapon:u8, pub element:u8, pub status:u8, pub order:[u8;4], pub trees:[u8;TREE_COUNT], pub groups:[u8;TREE_COUNT] }
+impl PriorityProfile {
+    pub const fn new(weapon:u8,element:u8,status:u8)->Self{Self{weapon,element,status,order:[0,1,2,3],trees:[0;TREE_COUNT],groups:[0;TREE_COUNT]}}
+    /// Category: 0 irrelevant, 1 utility, 2 comfort, 3 weapon support, 4 damage.
+    /// Small ordinal weights express recommendations, not damage percentages.
+    pub fn preference(self,tree:u8)->(u8,u32) {
+        let melee=self.weapon<11;let known=self.weapon<14;
+        let (category,weight)=match tree {
+            18|70|71=> (4,24),
+            72=> (4,if matches!(self.weapon,2|3|10|11|12|13){26}else{18}),
+            75=> (4,18),
+            27..=31=> if self.element==tree{(4,22)}else{(0,0)},
+            32|74=> if self.element!=0{(4,18)}else{(0,0)},
+            33|73=> if matches!(self.status,1..=3){(4,16)}else{(0,0)},
+            92=> if self.status==92{(4,16)}else{(1,1)},
+            35|36|38=> if melee{(3,18)}else{(0,0)},
+            // Draw bonuses are a modest GS recommendation, not a selectable playstyle.
+            40|41=> if self.weapon==0{(4,18)}else{(0,0)},
+            77=> if matches!(self.weapon,0|1|3|4|8|9|13){(3,24)}else{(0,0)},
+            89=> if self.weapon==5{(3,28)}else{(0,0)},
+            // Phial/ammo data is not supplied: do not assume impact CB or a shot type.
+            90=> if self.weapon==7{(3,24)}else{(1,1)},
+            48..=64|66=> (0,0),
+            65|68|69=> if matches!(self.weapon,11|12){(3,18)}else{(0,0)},
+            67=> if matches!(self.weapon,7|9|11|12|13){(3,18)}else{(0,0)},
+            94|95|100=> (4,18),
+            96|98|99|101=> (4,10), // Conditional offense is a recommendation, not assumed uptime.
+            85|86=> if matches!(self.weapon,2|6|7|9){(2,18)}else if self.weapon==0{(2,3)}else{(0,0)},
+            42=> if known{(3,if matches!(self.weapon,0|1|7|12){20}else{8})}else{(0,0)},
+            34|37|43|44=> if melee{(2,8)}else{(0,0)},
+            45..=47=> if matches!(self.weapon,11|12){(2,12)}else{(0,0)},
+            78..=80=> if matches!(self.weapon,3|13){(2,16)}else{(2,6)},
+            87|88=> if matches!(self.weapon,4|5){(2,12)}else{(0,0)},
+            1..=17|19..=26|81..=84|102|115..=127|201|202=> (2,6),
+            0|203..=205=> (0,0),
+            _=> (1,1),
+        };let group=self.groups[tree as usize];let category=if category>0&&(1..=4).contains(&group){5-group}else{category};(category,if self.trees[tree as usize]>0{u32::from(self.trees[tree as usize])}else{weight})
+    }
+    pub fn activation_preference(self,tree:u8,threshold:i16)->(u8,u32){if tree==98&&threshold<15&&self.groups[tree as usize]==0{(2,6)}else{self.preference(tree)}}
+    pub fn scores(self,all:&Totals,activations:impl Iterator<Item=(u8,i8)>)->[u32;5] {
+        let mut strongest=[0i16;TREE_COUNT];
+        for(tree,threshold)in activations{if threshold>0&&all.points[tree as usize]>=i16::from(threshold){strongest[tree as usize]=strongest[tree as usize].max(i16::from(threshold));}}
+        let mut out=[0;5];
+        for(tree,&threshold)in strongest.iter().enumerate(){if threshold==0{continue;}
+            let(category,weight)=self.activation_preference(tree as u8,threshold);
+            if category>0{out[4-category as usize]+=weight+weight*(threshold-10).max(0)as u32/20;}
+            out[4]+=1;
+        }out
+    }
+    pub fn rank(self,all:&Totals,activations:impl Iterator<Item=(u8,i8)>)->[u32;6] {
+        let mut strongest=[0i8;TREE_COUNT];let mut negative=[false;TREE_COUNT];
+        for(tree,p)in activations{if p>0&&all.points[tree as usize]>=i16::from(p){strongest[tree as usize]=strongest[tree as usize].max(p);}if p<0&&all.points[tree as usize]<=i16::from(p){negative[tree as usize]=true;}}
+        let scores=self.scores(all,strongest.iter().enumerate().map(|(i,&p)|(i as u8,p)));
+        [u32::MAX-scores[self.order[0]as usize],negative.iter().filter(|&&v|v).count()as u32,u32::MAX-scores[self.order[1]as usize],u32::MAX-scores[self.order[2]as usize],u32::MAX-scores[self.order[3]as usize],u32::MAX-scores[4]]
+    }
+    pub fn progress(self,all:&Totals,activations:impl Iterator<Item=(u8,i8)>)->u32 {
+        let mut next=[i16::MAX;TREE_COUNT];
+        for(tree,p)in activations{if p>0&&all.points[tree as usize]>0&&all.points[tree as usize]<i16::from(p){next[tree as usize]=next[tree as usize].min(i16::from(p));}}
+        next.iter().enumerate().filter(|(_,p)|**p!=i16::MAX).map(|(tree,&p)|{let(c,w)=self.activation_preference(tree as u8,p);let scale=if c==0{0}else{let at=self.order.iter().position(|&v|v==4-c).unwrap_or(3);[100000,1000,10,1][at]};scale*w*all.points[tree].max(0)as u32/p as u32}).sum()
+    }
+}

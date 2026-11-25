@@ -6,10 +6,10 @@ from unicorn.arm_const import UC_ARM_REG_R0,UC_ARM_REG_R1,UC_ARM_REG_R2,UC_ARM_R
 
 def install(ns,path):
  path.parent.mkdir(parents=True,exist_ok=True)
- paths={1:path,2:Path(os.environ.get('COMPENDIUM_PREVIEW_SETTINGS',str(path.with_suffix('.settings.ini'))))}
+ paths={1:path,2:Path(os.environ.get('COMPENDIUM_PREVIEW_SETTINGS',str(path.with_suffix('.settings.ini')))),3:path.with_suffix('.set-builder.txt')}
  def file_id(uc,address):
   data=bytes(uc.mem_read(address,128)).split(b'\0',1)[0]
-  return 2 if data==b'savedata:/compendium_settings.ini' else 1
+  return 3 if data==b'savedata:/utility_set_builder.txt' else 2 if data==b'savedata:/compendium_settings.ini' else 1
  def callback(uc,at,size,ctx):
   name=ns['imports'].get(at,'');r0=uc.reg_read(UC_ARM_REG_R0);r1=uc.reg_read(UC_ARM_REG_R1);r2=uc.reg_read(UC_ARM_REG_R2);sp=uc.reg_read(UC_ARM_REG_SP)
   out=0
