@@ -206,6 +206,38 @@ renderer and generation paths are retained; supplying the same local generated
 modules preserves the existing full UI. No HuntLog plugin or backend is needed
 at runtime or to compile this standalone tree.
 
+## Quick releases
+
+After implementation and testing, commit the source and publish the existing
+`build/hunters_compendium.nro`:
+
+```sh
+python3 tools/release.py v0.5.2 --notes-file /tmp/release-notes.md
+```
+
+Use the version already set in `mod/Cargo.toml`; omitting the tag derives it
+from that file. The script never rebuilds, runs tests, launches the game, bumps
+a version, or commits changes. It packages the supplied binary, checks its
+allowlist/NRO layout/memory budget and checksums, atomically pushes `main` and
+the tag, uploads a draft, verifies the uploaded bytes, then publishes it as
+latest. Existing releases are never overwritten. A failed upload verification
+leaves the draft unpublished.
+
+One-time publishing prerequisite: install [GitHub CLI](https://cli.github.com/)
+and sign in with `gh auth login` (or use its `GH_TOKEN` environment variable).
+The script reports missing authentication instead of starting a login flow.
+
+```sh
+# Local check only: no GitHub authentication, pushes, or publication.
+python3 tools/release.py --dry-run
+# Optionally pin the exact hash recorded when the binary was tested.
+python3 tools/release.py --notes-file /tmp/release-notes.md --sha256 TESTED_NRO_SHA256
+```
+
+This trusts the caller to supply a tested binary. Packaging/checksum validation
+does not substitute for implementation testing. Normal publishing targets about
+one minute; GitHub/network delays can take longer.
+
 ## Screenshots
 
 Actual in-game captures from 20 November 2026. Click an image for full size.
