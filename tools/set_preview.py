@@ -25,7 +25,7 @@ fn enter(_: &mut Ui,_:usize){{}}
 mod input{{pub fn close(){{}}}}
 mod wishlist{{pub const ARMOR_BASE:usize=0;pub fn contains(_:usize,_:usize)->bool{{false}}pub fn toggle(_:usize,_:usize){{}}pub fn failed()->bool{{false}}}}
 // Preparation is bypassed: the native game already captured each candidate's availability.
-mod set_unlock{{pub fn begin()->bool{{true}}pub fn ready()->bool{{true}}pub fn tick()->bool{{true}}pub fn armor(_:u8,_:u16)->Option<bool>{{unreachable!()}}pub fn decoration(_:u16)->Option<bool>{{unreachable!()}}}}
+mod set_unlock{{pub fn begin()->bool{{true}}pub fn ready()->bool{{true}}pub fn tick()->bool{{true}}pub fn armor(_:&crate::armor_data::Armor)->Option<bool>{{unreachable!()}}pub fn decoration(_:u16)->Option<bool>{{unreachable!()}}}}
 mod set_player{{
  pub const MAX_EQUIPMENT:usize=2000;
  #[derive(Clone,Copy)]pub struct Skill{{pub tree:u8,pub points:i8}}

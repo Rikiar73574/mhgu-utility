@@ -9,7 +9,7 @@ fn enter(_: &mut Ui,_:usize){}
 mod input{pub fn close(){}}
 mod catalog{pub const ENTRIES:[u8;0]=[];}
 mod wishlist{pub const ARMOR_BASE:usize=0;pub fn contains(_:usize,_:usize)->bool{false}pub fn toggle(_:usize,_:usize){}pub fn failed()->bool{false}}
-mod set_unlock{pub static UNKNOWN:std::sync::atomic::AtomicBool=std::sync::atomic::AtomicBool::new(false);pub fn begin()->bool{true}pub static READY:std::sync::atomic::AtomicBool=std::sync::atomic::AtomicBool::new(true);pub fn ready()->bool{READY.load(std::sync::atomic::Ordering::Relaxed)}pub fn tick()->bool{true}pub fn armor(_:u8,_:u16)->Option<bool>{Some(true)}pub fn decoration(_:u16)->Option<bool>{if UNKNOWN.load(std::sync::atomic::Ordering::Relaxed){None}else{Some(true)}}}
+mod set_unlock{pub static UNKNOWN:std::sync::atomic::AtomicBool=std::sync::atomic::AtomicBool::new(false);pub fn begin()->bool{true}pub static READY:std::sync::atomic::AtomicBool=std::sync::atomic::AtomicBool::new(true);pub fn ready()->bool{READY.load(std::sync::atomic::Ordering::Relaxed)}pub fn tick()->bool{true}pub fn armor(_:&crate::armor_data::Armor)->Option<bool>{Some(true)}pub fn decoration(_:u16)->Option<bool>{if UNKNOWN.load(std::sync::atomic::Ordering::Relaxed){None}else{Some(true)}}}
 mod armor_data{
  pub struct Armor{pub native:u16,pub slot:u8,pub hunter:u8,pub gender:u8,pub slots:u8,pub skill:u16,pub skill_count:u8,pub defense:u16}
  pub static ARMOR:[Armor;6]=[Armor{native:0,slot:0,hunter:2,gender:2,slots:3,skill:0,skill_count:2,defense:10},

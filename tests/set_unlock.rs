@@ -47,3 +47,22 @@ fn setup()->Fake{let mut f=Fake::default();f.words.insert(0x1897f78,SAVE);f.word
  assert_eq!(quest_override("Village",1,9,8,255),Some(false));
  assert_eq!(quest_override("Event",1,8,8,4),None);
 }
+
+#[test]fn village_eight_hr_four_cannot_admit_g_armor_from_positive_recipe_cache(){
+ for rarity in 1..=7{assert!(armor_rank_allowed(rarity,Some(4),255));}
+ // Exact screenshot pieces: Rathalos X rarity9 and Brachydium rarity10.
+ for rarity in [8,9,10]{assert!(!armor_rank_allowed(rarity,Some(4),255));assert!(!armor_rank_allowed(rarity,Some(7),255));assert!(armor_rank_allowed(rarity,Some(8),255));}
+}
+#[test]fn explicit_hub_planning_overrides_rank_but_village_does_not_unlock_g_rank(){
+ assert!(!armor_rank_allowed(9,Some(100),7));
+ assert!(armor_rank_allowed(9,Some(4),8));
+ assert!(armor_rank_allowed(9,Some(4),11));
+ assert!(!armor_rank_allowed(9,None,255));
+ assert!(!armor_rank_allowed(9,Some(4),12));
+}
+#[test]fn deviant_rarity_eleven_keeps_native_recipe_unlocks_at_low_and_high_rank(){
+ // Native-valid Redhelm Helm617 / Silverwind Helm627 / Dreadking Helm633.
+ // Rarity11 is a special deviant tier, not evidence that the base set is G-only.
+ for hr in [1,4,7,8,999]{assert!(armor_rank_allowed(11,Some(hr),255));}
+ assert!(armor_rank_allowed(11,Some(999),7));
+}

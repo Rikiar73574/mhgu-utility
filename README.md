@@ -206,6 +206,11 @@ renderer and generation paths are retained; supplying the same local generated
 modules preserves the existing full UI. No HuntLog plugin or backend is needed
 at runtime or to compile this standalone tree.
 
+Standard G-rank armor is excluded from automatic Set Builder searches below
+HR 8, even when recipe/source checks return a positive result. An explicit
+G-rank Hub override still supports future planning. Deviant base armor keeps
+its native unlock checks, and already-owned equipment remains eligible.
+
 ## Quick releases
 
 After implementation and testing, commit the source and publish the existing

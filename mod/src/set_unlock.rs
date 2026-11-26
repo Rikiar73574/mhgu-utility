@@ -65,6 +65,17 @@ pub fn planning_recipe(materials:&[u16],mut source:impl FnMut(u16)->Option<bool>
  for &item in materials{if source(item)==Some(false){return Some(false);}}None
 }
 
+/// Coarse standard-equipment tier boundary. Rarity11 is the special deviant
+/// tier (including LR/HR base pieces) and keeps its native recipe gates.
+/// This is independent of native recipe/source positives;
+/// it never substitutes rarity for the finer quest/story unlock checks.
+/// Hub overrides 8..11 explicitly plan G1..G4, while 255 uses actual HR.
+pub fn armor_rank_allowed(rarity:u8,hr:Option<u16>,hub_override:u8)->bool{
+ if !(1..=11).contains(&rarity){return false;}
+ if rarity<=7||rarity==11{return true;}
+ if hub_override==255{hr.is_some_and(|hr|hr>=8)}else{(8..=11).contains(&hub_override)}
+}
+
 #[cfg(not(test))]mod live{
  use super::*;use core::{cell::UnsafeCell,mem,ptr};use crate::{quest,quest_data,set_data};
  const ITEMS:usize=4096;
@@ -145,8 +156,13 @@ pub fn planning_recipe(materials:&[u16],mut source:impl FnMut(u16)->Option<bool>
   if !prepared(){return None;}let deco=set_data::DECO.iter().find(|d|d.native==native)?;
   alternatives(set_data::RECIPES[deco.recipe as usize..deco.recipe as usize+deco.recipe_count as usize].iter().map(|r|recipe(r.gate,&set_data::MATERIALS[r.material as usize..r.material as usize+r.material_count as usize])))
  }
- pub fn armor(slot:u8,native:u16)->Option<bool>{
+ pub fn armor(a:&crate::armor_data::Armor)->Option<bool>{
+  let(slot,native)=(a.slot,a.native);
   if !prepared()||slot>=5||native==0{return None;}
+  // Owned equipment is already handled by the caller. Unknown source coverage
+  // or a remembered recipe must not admit missing G armor at a lower rank.
+  let hub=unsafe{let s=&*STATE.0.get();if s.plan{s.guild}else{255}};
+  if !armor_rank_allowed(a.rarity,crate::set_player::snapshot().hr,hub){return Some(false);}
   alternatives(set_data::ARMOR_RECIPES.iter().filter_map(|r|{
    if r.slot!=slot{return None;}let variant=r.native.iter().position(|&id|id==native)?;
    if planning(){return Some(planning_recipe(&set_data::ARMOR_MATERIALS[r.material as usize..r.material as usize+r.material_count as usize],planned_material));}

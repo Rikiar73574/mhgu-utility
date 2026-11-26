@@ -125,7 +125,7 @@ fn tick_slice(s:&mut State,now:f64){
  if s.phase==Phase::Preparing{if !crate::set_unlock::tick(){return;}let end=(s.progress+32).min(armor::ARMOR.len()+data::DECO.len());let p=player::snapshot();
   while s.progress<end{let i=s.progress;s.progress+=1;
    if i<armor::ARMOR.len(){let a=&armor::ARMOR[i];if s.owned_only&&!owns_in(s,i){continue;}if a.native==65535||a.hunter!=2&&Some(a.hunter)!=p.hunter||a.gender!=2&&Some(a.gender)!=p.gender{continue;}
-    let available=if owns_in(s,i){Some(true)}else{crate::set_unlock::armor(a.slot,a.native)};
+    let available=if owns_in(s,i){Some(true)}else{crate::set_unlock::armor(a)};
     match available{Some(true)|None=>{let n=s.armor_count[a.slot as usize]as usize;if n>=1200{s.phase=Phase::Unavailable;s.status="Armor candidate capacity exceeded; search was not truncated.";return;}s.armor_ids[a.slot as usize][n]=i as u16|if available.is_none(){0x8000}else{0};s.armor_count[a.slot as usize]+=1;},Some(false)=>{}}
    }else{let id=i-armor::ARMOR.len();let available=crate::set_unlock::decoration(data::DECO[id].native);match available{Some(true)|None=>{if s.jewel_count==256{s.phase=Phase::Unavailable;s.status="Decoration capacity exceeded.";return;}s.jewel_ids[s.jewel_count]=id as u16|if available.is_none(){0x8000}else{0};s.jewel_count+=1;},Some(false)=>{}}}
   }
