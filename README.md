@@ -175,6 +175,11 @@ quantities and rates. Items can list both monster drops and quest rewards.
 - Material rows open their acquisition sources. The wishlist reads box and
   physical pouch inventory and stores its own `compendium_wishlist.txt` file.
 
+Utility v0.5.1 includes a compatibility guard for MapAssist `4c218`: native
+companion markers are preserved instead of being mistaken for monsters. It
+activates automatically when that supported MapAssist binary is present.
+No additional plugin or updater change is needed.
+
 Install one `hunters_compendium.nro` at
 `romfs/nativeNX/plugins/hunters_compendium.nro` inside its mod folder, enable the
 folder in Recomp, and restart. Keep the original game saves backed up.

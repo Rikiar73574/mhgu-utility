@@ -1,4 +1,5 @@
 #![no_std]
+#[path="../../compat/mapassist-guard/src/runtime.rs"]mod mapassist_guard;
 mod gather;mod gather_map;mod gather_filter;mod gather_menu;mod gather_zones;mod start_menu;
 mod set_workbench;mod set_saved;mod set_focus;mod skill_text;mod set_builder;mod set_skills;mod set_solver;mod set_player;mod set_unlock;mod set_data{include!(concat!(env!("OUT_DIR"),"/set_data.rs"));}
 mod settings;mod storage;mod editor;mod game_ui;mod game_ui_data{include!(concat!(env!("OUT_DIR"),"/game_ui.rs"));}mod quest;mod quest_data {include!(concat!(env!("OUT_DIR"),"/quest_data.rs"));}mod search;mod armor_preview;mod armor;mod armor_data { include!(concat!(env!("OUT_DIR"),"/armor_data.rs")); }mod quick_map;mod inventory;mod wishlist;mod native_hint;mod smithy;mod item;mod item_data { include!(concat!(env!("OUT_DIR"),"/item_data.rs")); }mod ui_art;mod ui_pixels { include!(concat!(env!("OUT_DIR"),"/ui_pixels.rs")); }mod weapon;mod weapon_data { include!(concat!(env!("OUT_DIR"),"/weapon_data.rs")); }mod map_art;mod map_pixels { include!(concat!(env!("OUT_DIR"),"/map_pixels.rs")); }mod layout;mod desktop;mod control;mod input;mod catalog { include!(concat!(env!("OUT_DIR"),"/catalog.rs")); }mod world { include!(concat!(env!("OUT_DIR"),"/world.rs")); }mod context;mod view;
@@ -17,7 +18,7 @@ impl Write for Text{fn write_str(&mut self,s:&str)->fmt::Result{let mut n=s.len(
 #[unsafe(no_mangle)]pub extern "C" fn forge_onLoad(p:*mut forge::sys::init::PluginInitParams){unsafe{(*p).required_version=forge::REQUIRED_VERSION;let n=b"MHGU Utility\0";core::ptr::copy_nonoverlapping(n.as_ptr(),(p as *mut u8).add(6),n.len());}}
 #[unsafe(no_mangle)]pub extern "C" fn forge_onInit(){let _=forge::log::init();if input::install(){native_hint::install();armor_preview::install();gather_map::install();start_menu::install();forge::log::prelude::info!("MHGU Utility 0.3 ready: Items / Weapons / Armor / Wishlist / Quest routes");}else{forge::log::prelude::error!("MHGU Utility disabled: HID imports incompatible");}}
 // Recomp completes every plugin initializer before the first update callback.
-#[unsafe(no_mangle)]pub extern "C" fn forge_onUpdate(_dt:f32){smithy::init_after_plugins();}
+#[unsafe(no_mangle)]pub extern "C" fn forge_onUpdate(_dt:f32){smithy::init_after_plugins();mapassist_guard::mapassist_guard_tick(_dt);}
 fn query_match(s:&str,u:&Ui)->bool{
  let mut query=[0;48];let mut n=0;for &b in &u.query[..u.len]{if b.is_ascii_alphanumeric(){query[n]=b.to_ascii_lowercase();n+=1;}}if n==0{return true;}
  let mut hay=[0u8;256];let mut len=0;for &b in s.as_bytes(){if b.is_ascii_alphanumeric()&&len<hay.len(){hay[len]=b.to_ascii_lowercase();len+=1;}}
