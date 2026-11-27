@@ -24,6 +24,9 @@ artwork, game tables, an NSO, saves or the local generation inputs.
 - Numerical skill explanations are independently authored from reviewed mechanics
   and native compound-skill identities. Reference links and explicit uncertainty
   notes are retained in `tools/skill_effects.py` in the source repository.
+- Noto Sans JP/KR fallback fonts: SIL Open Font License 1.1,
+  `licenses/Noto-OFL.txt`. Sources and conversion details are in
+  `assets/fonts/README.md` in the source repository.
 - Forge-RS code/linker support: MIT, Fexty (2026),
   `licenses/Forge-RS-MIT.txt`.
 - Generic wishlist storage adapted from HuntLog: MIT, sadgnk169 (2026),
@@ -32,4 +35,4 @@ artwork, game tables, an NSO, saves or the local generation inputs.
   `licenses/MHGURecomp-MIT.txt`.
 
 Source, local-input generation instructions and validation are available at
-https://github.com/Rikiar73574/mhgu-compendium .
+https://github.com/Rikiar73574/mhgu-utility .

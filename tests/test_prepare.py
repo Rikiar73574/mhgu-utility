@@ -24,6 +24,8 @@ class PrepareArtworkTest(unittest.TestCase):
         for kind in range(15):
             if kind != 5:
                 (table / f"weapon{kind:02d}MsgData_eng.gmd").write_bytes(header + b"weapon\0" * 6)
+        for name in ("skillTypeData", "skillData"):
+            (table / f"{name}_eng.gmd").write_bytes(header + b"skill\0description\0")
         (table / "itemData_eng.gmd").write_bytes(header + b"material\0description\0")
         (table / "armorSeriesData_eng.gmd").write_bytes(header + b"armor\0" * 10)
         return ["prepare.py", "--catalog", str(catalog), "--database", str(database),

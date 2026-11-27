@@ -11,6 +11,13 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 PLUGIN = "romfs/nativeNX/plugins/hunters_compendium.nro"
 EXPECTED = {
+    "romfs/nativeNX/utility/fonts/field-guide.ttf",
+    "romfs/nativeNX/utility/name_slots.bin",
+    "romfs/nativeNX/utility/language.ini",
+    "romfs/nativeNX/utility/locales/eng.tsv",
+    "romfs/nativeNX/utility/fonts/jpn.ttf",
+    "romfs/nativeNX/utility/fonts/kor.ttf",
+    "licenses/Noto-OFL.txt",
     PLUGIN, "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "SHA256SUMS",
     "licenses/MHGenDatabase-MIT.txt", "licenses/Forge-RS-MIT.txt",
     "licenses/HuntLog-MIT.txt", "licenses/MHGURecomp-MIT.txt",

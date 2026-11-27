@@ -9,7 +9,7 @@ Populate the Cargo cache separately if building on a new machine.
 
 ## Reuse existing local generated data
 
-This preserves the ten complete generated Rust modules byte-for-byte, including
+This preserves the eleven complete generated Rust modules and runtime font/name-slot files byte-for-byte, including
 all existing artwork, item/weapon metadata and game ID mappings. Use a snapshot
 prepared for this source revision; older caches lack source targets, point
 groups, native armor/jewel recipes, Prowler/target quest flags or native font metrics and must be regenerated. It copies only
@@ -59,7 +59,7 @@ locally extracted glyph masks into proportional outlines for the existing Forge
 font atlas. Optionally set `MHGU_FONT_DIR` to a locally installed Hunter Font
 directory containing `font_festa.gfd` and `font_festa_*_HQ.tex.z` to use its
 higher-resolution glyphs. No font or UI artwork is downloaded. All derived JSON,
-PNG and Rust files remain in ignored `build/`; none is a source-distribution input. The ten generated Rust modules are copied into
+PNG and Rust files remain in ignored `build/`; none is a source-distribution input. The eleven generated Rust modules are copied into
 Cargo's output directory by `mod/build.rs`. `build/input-manifest.json` records
 input/generated hashes without storing private input paths.
 
@@ -105,3 +105,6 @@ plugin combination fits; account for every loaded NRO and loader headroom.
 After building, create the runtime archive with `python3 tools/package.py`.
 It includes only the NRO, README, licenses, provenance notices and checksums.
 Generated inputs, game dumps, caches and saves are excluded.
+
+See [runtime localization](LOCALIZATION.md) for language configuration, translator
+files, CJK fonts and the MHXX verification boundary.

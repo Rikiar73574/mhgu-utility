@@ -15,6 +15,8 @@ export RUSTFLAGS="$RUSTFLAGS --remap-path-prefix=$cargo_sources=/cargo --remap-p
 cargo +nightly build --release --locked --offline
 python3 ../tools/elf_to_nro.py target/armv7a-none-eabi/release/libhunters_compendium.so ../build/hunters_compendium.nro
 python3 ../tools/check_plugin_size.py
+rustc +nightly --edition 2024 --test src/localization.rs -o ../build/localization-tests
+../build/localization-tests
 rustc +nightly --edition 2024 --test src/skill_text.rs -o ../build/skill-text-tests
 ../build/skill-text-tests
 rustc +nightly --edition 2024 --test src/control.rs -o ../build/control-tests

@@ -1,0 +1,526 @@
+# MHGU Utility UI translations. English phrase<TAB>translated phrase.
+# Missing keys fall back to English. Keep controller prefixes unchanged.
+../../compat/mapassist-guard/src/runtime.rs	../../compat/mapassist-guard/src/runtime.rs
+/ 5 skill variations	/ 5 skill variations
+/ 60s	/ 60s
+/armor_data.rs	/armor_data.rs
+/catalog.rs	/catalog.rs
+/game_ui.rs	/game_ui.rs
+/item_data.rs	/item_data.rs
+/map_pixels.rs	/map_pixels.rs
+/quest_data.rs	/quest_data.rs
+/set_data.rs	/set_data.rs
+/ui_pixels.rs	/ui_pixels.rs
+/weapon_data.rs	/weapon_data.rs
+/world.rs	/world.rs
+60-second search finished. Best variations so far; Y continues.	60-second search finished. Best variations so far; Y continues.
+: generated default INI	: generated default INI
+: loaded	: loaded
+: open failed 0x	: open failed 0x
+: read failed 0x	: read failed 0x
+: save failed 0x	: save failed 0x
+: saved	: saved
+; using defaults	; using defaults
+A	A
+A:	A:
+A: close	A: close
+Acquisition details not imported yet.	Acquisition details not imported yet.
+Add missing armor to wishlist	Add missing armor to wishlist
+Add to wishlist	Add to wishlist
+Affinity	Affinity
+All	All
+All gathering	All gathering
+Alternatives are not additional requirements. Whole units supply points.	Alternatives are not additional requirements. Whole units supply points.
+Area	Area
+Area / gathering spot	Area / gathering spot
+Armor	Armor
+Armor candidate capacity exceeded; search was not truncated.	Armor candidate capacity exceeded; search was not truncated.
+Armor preview disabled: native code mismatch at	Armor preview disabled: native code mismatch at
+Armor sets	Armor sets
+Arms	Arms
+Arrow keys	Arrow keys
+Arrows	Arrows
+Assign skill priority	Assign skill priority
+Attack	Attack
+Automatic	Automatic
+Automatic (	Automatic (
+Automatic follows your character. Overrides change the search, not your save.	Automatic follows your character. Overrides change the search, not your save.
+B	B
+B  Details	B  Details
+B  Item sources	B  Item sources
+B  Materials	B  Materials
+B:	B:
+B: open     LB / RB: continue browsing Utility	B: open     LB / RB: continue browsing Utility
+B: open Set Builder     LB / RB: switch section	B: open Set Builder     LB / RB: switch section
+B: type     Y: delete     X: done     A: back	B: type     Y: delete     X: done     A: back
+Back	Back
+Back to result	Back to result
+Base	Base
+Base defense	Base defense
+Berries	Berries
+Blademaster	Blademaster
+Blastblight	Blastblight
+Bones	Bones
+Both	Both
+Bow	Bow
+Bug	Bug
+Bugs	Bugs
+Build	Build
+Build data or its required charm is no longer available on this character.	Build data or its required charm is no longer available on this character.
+Build pinned for comparison. Choose another result and Compare again.	Build pinned for comparison. Choose another result and Compare again.
+Build renamed.	Build renamed.
+Build saved.	Build saved.
+Cancel	Cancel
+Chance	Chance
+Chance per gather	Chance per gather
+Character equipment is unavailable. Open this in town as a hunter.	Character equipment is unavailable. Open this in town as a hunter.
+Character or scene changed. Return to skill selection and search again.	Character or scene changed. Return to skill selection and search again.
+Charge Blade	Charge Blade
+Charm	Charm
+Checking progression availability (not crafting stock)...	Checking progression availability (not crafting stock)...
+Checking your character's unlocked quests...	Checking your character's unlocked quests...
+Checks every owned charm. Crafting materials do not limit results.	Checks every owned charm. Crafting materials do not limit results.
+Chest	Chest
+Choose an alternative material to inspect its sources on this quest.	Choose an alternative material to inspect its sources on this quest.
+Choose an option. Back cancels without changing it.	Choose an option. Back cancels without changing it.
+Clear	Clear
+Clear comparison	Clear comparison
+Clear your search to see the remaining recipes.	Clear your search to see the remaining recipes.
+Compare	Compare
+Compare complete loadouts	Compare complete loadouts
+Comparison cleared.	Comparison cleared.
+Compendium settings	Compendium settings
+Compendium wishlist	Compendium wishlist
+Controller keyboard	Controller keyboard
+Could not commit MHGU save INI. See Forge log.	Could not commit MHGU save INI. See Forge log.
+Could not create save INI. See Forge log.	Could not create save INI. See Forge log.
+Could not delete saved build.	Could not delete saved build.
+Could not mount MHGU save data. See Forge log.	Could not mount MHGU save data. See Forge log.
+Could not mount MHGU savedata	Could not mount MHGU savedata
+Could not open save INI for writing.	Could not open save INI for writing.
+Could not rename build. Use a nonempty name up to 48 bytes.	Could not rename build. Use a nonempty name up to 48 bytes.
+Could not save MHGU Utility settings. See log.txt.	Could not save MHGU Utility settings. See log.txt.
+Could not save build. Check storage or the 12-build limit.	Could not save build. Check storage or the 12-build limit.
+Could not save settings. Previous data retained.	Could not save settings. Previous data retained.
+Could not write save INI. See Forge log.	Could not write save INI. See Forge log.
+Crafting materials	Crafting materials
+Ctrl+F	Ctrl+F
+Ctrl+F to edit	Ctrl+F to edit
+Current quest location	Current quest location
+Current result	Current result
+D-pad	D-pad
+D-pad / left stick	D-pad / left stick
+D-pad / left stick: navigate     Right stick: scroll details	D-pad / left stick: navigate     Right stick: scroll details
+D-pad: armor     Y: hunter type     L3: gender     LT / RT: rank     B: details	D-pad: armor     Y: hunter type     L3: gender     LT / RT: rank     B: details
+D-pad: location     LT / RT: LR / HR / GR     B: browse zones	D-pad: location     LT / RT: LR / HR / GR     B: browse zones
+D-pad: move     B: checkbox     A: close	D-pad: move     B: checkbox     A: close
+D-pad: navigate tree     B: materials     A: weapon tree	D-pad: navigate tree     B: materials     A: weapon tree
+Decoration capacity exceeded.	Decoration capacity exceeded.
+Default priority	Default priority
+Defense	Defense
+Delete	Delete
+Disabled: incompatible HID imports. Check log.txt.	Disabled: incompatible HID imports. Check log.txt.
+Done	Done
+Dragon	Dragon
+Dual Blades	Dual Blades
+Edit Priority 1, 2, 3 and 4	Edit Priority 1, 2, 3 and 4
+Editing build name	Editing build name
+Effect data unavailable	Effect data unavailable
+Eligible material options; each unit supplies points	Eligible material options; each unit supplies points
+Eligible point materials	Eligible point materials
+Empty sockets	Empty sockets
+Enter	Enter
+Enter:	Enter:
+Enter: type     F9: delete     Esc: back	Enter: type     F9: delete     Esc: back
+Esc	Esc
+Esc:	Esc:
+F10	F10
+F10:	F10:
+F6 / Start + Left	F6 / Start + Left
+F8	F8
+F8:	F8:
+F9	F9
+F9:	F9:
+Female	Female
+Fire	Fire
+Fishing	Fishing
+For	For
+Forge	Forge
+Forlorn Arena	Forlorn Arena
+Found 5 different active-skill combinations. Y continues.	Found 5 different active-skill combinations. Y continues.
+Full set	Full set
+Full set preview	Full set preview
+Full set skills	Full set skills
+Full set stats	Full set stats
+G	G
+GR	GR
+Gather	Gather
+Gathering	Gathering
+Gathering map disabled: native mismatch at	Gathering map disabled: native mismatch at
+Gender	Gender
+Gender: All	Gender: All
+Gender: Female	Gender: Female
+Gender: Male	Gender: Male
+Great Sword	Great Sword
+Guild	Guild
+Gunlance	Gunlance
+Gunner	Gunner
+HR	HR
+Hammer	Hammer
+Head	Head
+Heavy Bowgun	Heavy Bowgun
+Honey	Honey
+Hub progression	Hub progression
+Hub stars	Hub stars
+Hunting Horn	Hunting Horn
+ITEM SOURCES	ITEM SOURCES
+Ice	Ice
+Improving the best builds found so far...	Improving the best builds found so far...
+Incidental monster drops	Incidental monster drops
+Include Prowler quests	Include Prowler quests
+IncludeProwlerQuests	IncludeProwlerQuests
+IncludeProwlerQuests = false	IncludeProwlerQuests = false
+IncludeProwlerQuests = true	IncludeProwlerQuests = true
+IncludeProwlerQuests = true # comment	IncludeProwlerQuests = true # comment
+IncludeProwlerQuests = yesplease	IncludeProwlerQuests = yesplease
+IncludeProwlerQuests=1	IncludeProwlerQuests=1
+Insect Glaive	Insect Glaive
+Interface size (%)	Interface size (%)
+Inventory is unavailable. Reopen after your character has loaded.	Inventory is unavailable. Reopen after your character has loaded.
+Item list	Item list
+Item sources	Item sources
+Items	Items
+Key	Key
+Known stock supplies all requirements with the suggested allocation.	Known stock supplies all requirements with the suggested allocation.
+L3	L3
+L3:	L3:
+LB	LB
+LB / RB	LB / RB
+LR	LR
+LT	LT
+LT / RT	LT / RT
+LV	LV
+Lance	Lance
+Left / Right: areas     Up / Down: items     B: item sources     A: close	Left / Right: areas     Up / Down: items     B: item sources     A: close
+Left / Right: build   Up / Down: piece   B: details   R3: wishlist   Y: pause	Left / Right: build   Up / Down: piece   B: details   R3: wishlist   Y: pause
+Left / Right: overview / piece     Up / Down: skill     R3: add set	Left / Right: overview / piece     Up / Down: skill     R3: add set
+Left / Right: quest     Up / Down: material     B: sources     Y: refresh     A: wishlist	Left / Right: quest     Up / Down: material     B: sources     Y: refresh     A: wishlist
+Left / Right: recipe     Up: tree     Down: materials	Left / Right: recipe     Up: tree     Down: materials
+Left / Right: set piece     Up / Down: material     B: sources     R3: piece     Y: add set	Left / Right: set piece     Up / Down: material     B: sources     R3: piece     Y: add set
+Left / Right: source     Up / Down: rows     B: ingredient sources     A: back	Left / Right: source     Up / Down: rows     B: ingredient sources     A: back
+Left / Right: upgrades     Up / Down: same column	Left / Right: upgrades     Up / Down: same column
+Left / Right: zone     LT / RT: LR / HR / GR     B: item details	Left / Right: zone     LT / RT: LR / HR / GR     B: item details
+Legs	Legs
+Light Bowgun	Light Bowgun
+Loading model...	Loading model...
+Loadouts retain stable equipment IDs. Opening checks armor type, charm ownership and socket capacity. Run a fresh search to revalidate current unlocks.	Loadouts retain stable equipment IDs. Opening checks armor type, charm ownership and socket capacity. Run a fresh search to revalidate current unlocks.
+Locations	Locations
+Long Sword	Long Sword
+Lv	Lv
+MHGU Utility	MHGU Utility
+MHGU Utility 0.3 ready: Items / Weapons / Armor / Wishlist / Quest routes	MHGU Utility 0.3 ready: Items / Weapons / Armor / Wishlist / Quest routes
+MHGU Utility disabled: HID imports incompatible	MHGU Utility disabled: HID imports incompatible
+Male	Male
+Matches	Matches
+Material	Material
+Mine	Mine
+Minimum tier; stronger tiers qualify	Minimum tier; stronger tiers qualify
+Mining	Mining
+Missing	Missing
+Missing catalog entry	Missing catalog entry
+Mouse wheel: scroll details	Mouse wheel: scroll details
+Move to priority...	Move to priority...
+Mushrooms	Mushrooms
+Native preview unavailable	Native preview unavailable
+Native progression availability verified.	Native progression availability verified.
+Navigation	Navigation
+Need	Need
+Needed	Needed
+No armor matches your search	No armor matches your search
+No available armor for at least one equipment slot.	No available armor for at least one equipment slot.
+No charm required	No charm required
+No complete build to save.	No complete build to save.
+No crafting recipe recorded for this level.	No crafting recipe recorded for this level.
+No eligible quest selected; source navigation unavailable	No eligible quest selected; source navigation unavailable
+No forge recipe in the source database	No forge recipe in the source database
+No gathering items for this quest map.	No gathering items for this quest map.
+No gathering records for this location and rank.	No gathering records for this location and rank.
+No matches. Try a shorter name.	No matches. Try a shorter name.
+No matches. X to edit your search.	No matches. X to edit your search.
+No model mapping for this set	No model mapping for this set
+No required skills: recommend builds using your weapon and skill priorities. All available armor and owned charms are considered.	No required skills: recommend builds using your weapon and skill priorities. All available armor and owned charms are considered.
+No sockets	No sockets
+No unlocked quest has an imported source for these materials.	No unlocked quest has an imported source for these materials.
+No wishlist recipes match your search	No wishlist recipes match your search
+Not active	Not active
+Not available from this quest	Not available from this quest
+OUT_DIR	OUT_DIR
+Open	Open
+Open Set Builder	Open Set Builder
+Other	Other
+OtherSetting = true	OtherSetting = true
+Owned	Owned
+Owned armor only	Owned armor only
+Paralysis	Paralysis
+Pause / continue search	Pause / continue search
+Pieces, sockets & jewels	Pieces, sockets & jewels
+Pinned build	Pinned build
+Planning override: recipe and quest unlock flags are unverified.	Planning override: recipe and quest unlock flags are unverified.
+Plants	Plants
+Poison	Poison
+Press F8	Press F8
+Press R3	Press R3
+Press R3 on a weapon or armor piece to save its crafting recipe.	Press R3 on a weapon or armor piece to save its crafting recipe.
+Prev       Next	Prev       Next
+Preview view is busy	Preview view is busy
+Priority	Priority
+Priority 1 is highest. Open a list to move individual skills between priorities.	Priority 1 is highest. Open a list to move individual skills between priorities.
+Profile	Profile
+Progression, ownership and sockets	Progression, ownership and sockets
+Qty	Qty
+Quest availability cannot be verified in this scene.	Quest availability cannot be verified in this scene.
+Quest rewards	Quest rewards
+R	R
+R3	R3
+R3  Add full set to wishlist	R3  Add full set to wishlist
+R3  Add to wishlist	R3  Add to wishlist
+R3  Remove	R3  Remove
+R3  Remove from wishlist	R3  Remove from wishlist
+R3:	R3:
+RB	RB
+RT	RT
+Rank	Rank
+Rarity	Rarity
+Refining decorations for this build...	Refining decorations for this build...
+Related weapons / materials	Related weapons / materials
+Remove	Remove
+Remove from wishlist	Remove from wishlist
+Rename	Rename
+Rename saved build	Rename saved build
+Required	Required
+Required skills (optional)	Required skills (optional)
+Requirements	Requirements
+Reset Set Builder Settings	Reset Set Builder Settings
+Resets search settings and skill priorities. Saved builds are kept.	Resets search settings and skill priorities. Saved builds are kept.
+Right stick rotates	Right stick rotates
+Right stick: scroll details	Right stick: scroll details
+Route offers sources for	Route offers sources for
+S	S
+Sanctuary	Sanctuary
+Save a build from the results screen to keep its complete loadout.	Save a build from the results screen to keep its complete loadout.
+Save build	Save build
+Save name	Save name
+Saved build	Saved build
+Saved build deleted.	Saved build deleted.
+Saved build. Run a new search to verify current progression.	Saved build. Run a new search to verify current progression.
+Saved builds	Saved builds
+Saved loadout. Availability must be revalidated with a new search.	Saved loadout. Availability must be revalidated with a new search.
+Saved loadout: run search to revalidate availability.	Saved loadout: run search to revalidate availability.
+Search	Search
+Search / resume	Search / resume
+Search available equipment	Search available equipment
+Search by weapon and priorities, or choose optional required skills.	Search by weapon and priorities, or choose optional required skills.
+Search complete. Ranked by activated skills.	Search complete. Ranked by activated skills.
+Search complete: no matching build.	Search complete: no matching build.
+Search equipment, adjust skill priorities and manage saved builds.	Search equipment, adjust skill priorities and manage saved builds.
+Search finds items across every category	Search finds items across every category
+Search paused while browsing. Y resumes.	Search paused while browsing. Y resumes.
+Search paused.	Search paused.
+Search paused. Y resumes.	Search paused. Y resumes.
+Search to revalidate	Search to revalidate
+Search:	Search:
+Searching focused skill combinations...	Searching focused skill combinations...
+Searching other armor and charm combinations...	Searching other armor and charm combinations...
+Select	Select
+Select a skill to move it to another priority.	Select a skill to move it to another priority.
+Set Builder	Set Builder
+Set Builder settings	Set Builder settings
+Set Builder settings reset.	Set Builder settings reset.
+Settings	Settings
+Settings save failed; previous settings retained.	Settings save failed; previous settings retained.
+Settings saved. Start a new search to apply them.	Settings saved. Start a new search to apply them.
+Sharpness	Sharpness
+Skill Priorities	Skill Priorities
+Skills from this build	Skills from this build
+Sleep	Sleep
+Slots	Slots
+Sockets	Sockets
+Some equipment availability is unverified.	Some equipment availability is unverified.
+Some requirements could not be resolved. This plan is incomplete.	Some requirements could not be resolved. This plan is incomplete.
+Source	Source
+Source opportunities only. Quantities and rare drops are not guaranteed.	Source opportunities only. Quantities and rare drops are not guaranteed.
+Space	Space
+Star overrides are for planning: special quest and recipe unlocks still need checking. Set both star fields to Automatic to use your character's current unlocks throughout.	Star overrides are for planning: special quest and recipe unlocks still need checking. Set both star fields to Automatic to use your character's current unlocks throughout.
+Start + D-pad Left. Xbox B selects; A goes back. Game continues while open.	Start + D-pad Left. Xbox B selects; A goes back. Game continues while open.
+Stats & skill points	Stats & skill points
+Stats & skills	Stats & skills
+Suggested stock allocation; alternatives may use your materials differently.	Suggested stock allocation; alternatives may use your materials differently.
+Switch Axe	Switch Axe
+Switch section	Switch section
+Sword & Shield	Sword & Shield
+Tab	Tab
+Tab  Full utility	Tab  Full utility
+Target monster drops	Target monster drops
+The equipment snapshot or search data is invalid.	The equipment snapshot or search data is invalid.
+This game build cannot verify equipment availability.	This game build cannot verify equipment availability.
+Thunder	Thunder
+Torso Up	Torso Up
+Total	Total
+Type	Type
+Type a name to see matching results.	Type a name to see matching results.
+Type to search skills...	Type to search skills...
+Type to search...	Type to search...
+Type: All	Type: All
+Type: Blademaster	Type: Blademaster
+Type: Gunner	Type: Gunner
+Type: search     Up / Down: results     Left / Right: caret     Ctrl+A: all	Type: search     Up / Down: results     Left / Right: caret     Ctrl+A: all
+Typing searches directly	Typing searches directly
+Unadorned set; no talisman or gems	Unadorned set; no talisman or gems
+Unknown	Unknown
+Unknown item	Unknown item
+Unlocked quest route	Unlocked quest route
+Unresolved requirement	Unresolved requirement
+Up / Down: column     Left / Right: upgrades     LT / RT: family     B: details	Up / Down: column     Left / Right: upgrades     LT / RT: family     B: details
+Up / Down: eligible material     B: sources     A: quest route	Up / Down: eligible material     B: sources     A: quest route
+Up / Down: link     B: open     A: back	Up / Down: link     B: open     A: back
+Up / Down: material     B: item sources     A: miniature tree	Up / Down: material     B: item sources     A: miniature tree
+Up / Down: requirements     Y: refresh     A: wishlist	Up / Down: requirements     Y: refresh     A: wishlist
+Up / Down: scroll     Left / Right: page     A: back	Up / Down: scroll     Left / Right: page     A: back
+Up / Down: skill     Left / Right: page     B: full effect     A: build	Up / Down: skill     Left / Right: page     B: full effect     A: build
+Up / Down: skill   B: select   L3: full effect   Y: search   A: back	Up / Down: skill   B: select   L3: full effect   Y: search   A: back
+Upgrade	Upgrade
+Upgrade tree	Upgrade tree
+Upgrade tree  <	Upgrade tree  <
+Utility Set Builder	Utility Set Builder
+Village	Village
+Village progression	Village progression
+Village stars	Village stars
+Waist	Waist
+Waiting for this map's gathering points...	Waiting for this map's gathering points...
+Water	Water
+Weapon	Weapon
+Weapon details	Weapon details
+Weapon slots	Weapon slots
+Weapon sockets	Weapon sockets
+Weapon sockets apply to the next search.	Weapon sockets apply to the next search.
+Weapon stats	Weapon stats
+Weapon trees	Weapon trees
+Weapons	Weapons
+Wishlist	Wishlist
+Wishlist save failed	Wishlist save failed
+Wyvern's End	Wyvern's End
+X	X
+X  Full utility	X  Full utility
+X to edit	X to edit
+XR	XR
+Y	Y
+Y  Add full set to wishlist	Y  Add full set to wishlist
+Y  Suggest quests	Y  Suggest quests
+Y:	Y:
+Your wishlist is empty	Your wishlist is empty
+Your wishlist is empty. Add a recipe to plan a route.	Your wishlist is empty. Add a recipe to plan a route.
+Z	Z
+Zones:	Zones:
+[x]	[x]
+_ZN2nn2fs10CreateFileEPKcx	_ZN2nn2fs10CreateFileEPKcx
+_ZN2nn2fs11GetFileSizeEPxNS0_10FileHandleE	_ZN2nn2fs11GetFileSizeEPxNS0_10FileHandleE
+_ZN2nn2fs11SetFileSizeENS0_10FileHandleEx	_ZN2nn2fs11SetFileSizeENS0_10FileHandleEx
+_ZN2nn2fs14CommitSaveDataEPKc	_ZN2nn2fs14CommitSaveDataEPKc
+_ZN2nn2fs8OpenFileEPNS0_10FileHandleEPKci	_ZN2nn2fs8OpenFileEPNS0_10FileHandleEPKci
+_ZN2nn2fs8ReadFileENS0_10FileHandleExPvj	_ZN2nn2fs8ReadFileENS0_10FileHandleExPvj
+_ZN2nn2fs9CloseFileENS0_10FileHandleE	_ZN2nn2fs9CloseFileENS0_10FileHandleE
+_ZN2nn2fs9WriteFileENS0_10FileHandleExPKvjRKNS0_11WriteOptionE	_ZN2nn2fs9WriteFileENS0_10FileHandleExPKvjRKNS0_11WriteOptionE
+_ZN2nn3hid12GetNpadStateEPNS0_16NpadFullKeyStateERKj	_ZN2nn3hid12GetNpadStateEPNS0_16NpadFullKeyStateERKj
+_ZN2nn3hid12GetNpadStateEPNS0_16NpadJoyDualStateERKj	_ZN2nn3hid12GetNpadStateEPNS0_16NpadJoyDualStateERKj
+_ZN2nn3hid12GetNpadStateEPNS0_16NpadJoyLeftStateERKj	_ZN2nn3hid12GetNpadStateEPNS0_16NpadJoyLeftStateERKj
+_ZN2nn3hid12GetNpadStateEPNS0_17NpadHandheldStateERKj	_ZN2nn3hid12GetNpadStateEPNS0_17NpadHandheldStateERKj
+_ZN2nn3hid12GetNpadStateEPNS0_17NpadJoyRightStateERKj	_ZN2nn3hid12GetNpadStateEPNS0_17NpadJoyRightStateERKj
+abcé	abcé
+active skills	active skills
+arm	arm
+armor	armor
+armor pieces missing	armor pieces missing
+armor:	armor:
+atk  R	atk  R
+build	build
+builds	builds
+builds=	builds=
+charm_box	charm_box
+charm_box=	charm_box=
+charm_points	charm_points
+charm_slots	charm_slots
+charm_slots=	charm_slots=
+charm_trees	charm_trees
+default	default
+end	end
+endbuild	endbuild
+false	false
+forge_hook_create	forge_hook_create
+goal	goal
+goal=	goal=
+goals	goals
+goals=	goals=
+groups	groups
+groups=default	groups=default
+hub	hub
+hub=	hub=
+jewel	jewel
+jewel placements	jewel placements
+jewel=	jewel=
+jewels	jewels
+jewels /	jewels /
+jewels=	jewels=
+max	max
+name	name
+name=	name=
+of	of
+one	one
+one two\n\nthree	one two\n\nthree
+order	order
+owned charms	owned charms
+owned_only	owned_only
+owned_only=	owned_only=
+pieces	pieces
+points per item	points per item
+points unallocated	points unallocated
+pt	pt
+pt unallocated	pt unallocated
+pts	pts
+r0	r0
+r1	r1
+rd	rd
+requirements.	requirements.
+savedata	savedata
+savedata:/compendium_settings.ini	savedata:/compendium_settings.ini
+savedata:/compendium_wishlist.txt	savedata:/compendium_wishlist.txt
+savedata:/utility_set_builder.txt	savedata:/utility_set_builder.txt
+selected	selected
+set_builder_view.rs	set_builder_view.rs
+skill trees   Rows	skill trees   Rows
+skills	skills
+slots total	slots total
+sockets	sockets
+sockets)	sockets)
+stars	stars
+steps	steps
+svc #0x1e	svc #0x1e
+three	three
+to	to
+trees	trees
+trees=default	trees=default
+true	true
+two	two
+upgrade levels	upgrade levels
+used	used
+utility-set-builder=1	utility-set-builder=1
+utility-set-builder=1\nvillage=255\nhub=255\nowned_only=0\norder=0,1,2,3\ntrees=default\nbuilds=0\nend	utility-set-builder=1\nvillage=255\nhub=255\nowned_only=0\norder=0,1,2,3\ntrees=default\nbuilds=0\nend
+utility-set-builder=2	utility-set-builder=2
+village	village
+village=	village=
+weapon	weapon
+weapon slots	weapon slots
+weapon slots /	weapon slots /
+wo	wo
+é猫	é猫
+é猫word	é猫word
+猫é	猫é

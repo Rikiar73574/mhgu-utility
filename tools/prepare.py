@@ -3,6 +3,7 @@ import argparse,hashlib,json,os,shutil,subprocess,sys,tempfile
 from pathlib import Path
 from paths import ROOT,DATA,GENERATED
 from game_names import export,armor_names
+from localization import generate as generate_name_slots
 
 def replace_artwork_cache(source_root):
     artwork=(('location-art','.img'),('weapon-art','.png'))
@@ -26,13 +27,13 @@ def main():
     p.add_argument('--database',type=Path)
     p.add_argument('--game-dir',type=Path)
     p.add_argument('--art-dir',type=Path,help='optional local location-art/ and weapon-art/ cache; omitted artwork uses existing UI fallbacks')
-    p.add_argument('--generated-dir',type=Path,help='reuse all ten pre-generated Rust data files unchanged')
+    p.add_argument('--generated-dir',type=Path,help='reuse generated Rust modules, name-slot metadata and native font unchanged')
     a=p.parse_args()
     DATA.mkdir(parents=True,exist_ok=True);GENERATED.mkdir(parents=True,exist_ok=True)
     if a.generated_dir:
-        modules=('game_ui','quest_data','armor_data','catalog','world','weapon_data','item_data','map_pixels','ui_pixels','set_data')
-        inputs=[a.generated_dir/f'{name}.rs' for name in modules]
-        if not all(path.is_file() for path in inputs):p.error('generated-dir must contain all ten generated Rust modules')
+        modules=('name_slots','game_ui','quest_data','armor_data','catalog','world','weapon_data','item_data','map_pixels','ui_pixels','set_data')
+        inputs=[a.generated_dir/f'{name}.rs' for name in modules]+[a.generated_dir/'name_slots.bin',a.generated_dir/'field-guide.ttf']
+        if not all(path.is_file() for path in inputs):p.error('generated-dir must contain all eleven Rust modules, name_slots.bin and field-guide.ttf')
         for source in inputs:shutil.copyfile(source,GENERATED/source.name)
         if a.catalog:
             shutil.copyfile(a.catalog,DATA/'catalog.json')
@@ -51,6 +52,7 @@ def main():
     if not a.database.is_file():p.error('MHGenDatabase SQLite file is missing')
     table=a.game_dir/'romfs/nativeNX/eng/table'
     weapons,items=export(table)
+    generate_name_slots(table,GENERATED/'name_slots.rs')
     DATA.mkdir(parents=True,exist_ok=True);GENERATED.mkdir(parents=True,exist_ok=True)
     destination=DATA/'catalog.json'
     if a.catalog.resolve()!=destination.resolve():shutil.copyfile(a.catalog,destination)

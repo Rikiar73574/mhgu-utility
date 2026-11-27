@@ -1,19 +1,31 @@
-//! Native MHGU frame artwork and locally prepared proportional glyph outlines.
+// Native MHGU frame artwork and locally prepared proportional glyph outlines.
 use forge::{imgui,sys::imgui::{self as sys,ImVec2}};
 use super::game_ui_data as data;
 static RANGES:&[u16]=&[32,383,0x2014,0x2015,0x2019,0x2019,0x2026,0x2026,0x2190,0x2192,0x2605,0x2605,0];
+static CJK_RANGES:&[u16]=&[0x20,0x024f,0x2000,0x206f,0x3000,0x30ff,0x31f0,0x31ff,0x3400,0x9fff,0xac00,0xd7a3,0xff00,0xffef,0];
 static mut FONT:*mut sys::ImFont=core::ptr::null_mut();
 
 #[unsafe(no_mangle)]pub extern "C" fn forge_onImGuiInit(_: *mut core::ffi::c_void,_: *mut core::ffi::c_void,_: *mut core::ffi::c_void){unsafe{
+ FONT=core::ptr::null_mut();
+ super::language::init();
  let atlas=imgui::get_io().Fonts;if atlas.is_null(){return;}
  let cfg=sys::ImFontConfig_ImFontConfig();if cfg.is_null(){return;}
  (*cfg).FontDataOwnedByAtlas=false;(*cfg).PixelSnapH=false;
- FONT=sys::ImFontAtlas_AddFontFromMemoryTTF(atlas,data::FONT.as_ptr()as *mut _,data::FONT.len()as i32,24.0,cfg,RANGES.as_ptr());
+ if let Some((bytes,len))=super::language::font_data(true){
+  FONT=sys::ImFontAtlas_AddFontFromMemoryTTF(atlas,bytes.cast(),len as i32,24.0,cfg,RANGES.as_ptr());
+ }
+ if FONT.is_null(){FONT=imgui::ImFont::current().raw();}
+ if let Some((bytes,len))=super::language::font_data(false){
+  // Buffers remain owned by language::State across atlas recreation.
+  (*cfg).MergeMode=!FONT.is_null();
+  let fallback=sys::ImFontAtlas_AddFontFromMemoryTTF(atlas,bytes.cast(),len as i32,24.0,cfg,CJK_RANGES.as_ptr());
+  if FONT.is_null(){FONT=fallback;}
+ }
  sys::ImFontConfig_destroy(cfg);
 }}
 pub fn font()->*mut sys::ImFont{unsafe{if FONT.is_null(){imgui::ImFont::current().raw()}else{FONT}}}
 pub fn text(d:&imgui::DrawList,font:*mut sys::ImFont,size:f32,pos:ImVec2,color:u32,text:&str){unsafe{
- sys::ImDrawList_AddText_FontPtr(d.raw(),font,size,pos,color,text.as_ptr(),text.as_ptr().add(text.len()),0.0,core::ptr::null());
+ super::language::translated(text,|text|sys::ImDrawList_AddText_FontPtr(d.raw(),font,size,pos,color,text.as_ptr(),text.as_ptr().add(text.len()),0.0,core::ptr::null()));
 }}
 fn tint(color:u32,mul:u32)->u32{
  let channel=|shift:u32|(((color>>shift)&255)*((mul>>shift)&255)/255)<<shift;
@@ -44,4 +56,7 @@ pub fn button(d:&imgui::DrawList,index:usize,rect:[f32;4]){part(d,5+index,[0.0,0
 /// Shoulder and clicked-stick glyphs from the native button atlas.
 pub fn control(d:&imgui::DrawList,index:usize,rect:[f32;4]){part(d,9+index,[0.0,0.0,24.0,24.0],rect,u32::MAX);}
 
-pub fn width(size:f32,text:&str)->f32{text.chars().map(|ch|data::WIDTHS.binary_search_by_key(&(ch as u32),|v|v.0).ok().map(|i|data::WIDTHS[i].1 as f32/1024.0*size).unwrap_or(size*0.5)).sum()}
+pub fn width(size:f32,text:&str)->f32{super::language::translated(text,|text|unsafe{
+ let font=font();if font.is_null(){return text.chars().count()as f32*size*0.5;}
+ sys::ImFont_CalcTextSizeA(font,size,f32::MAX,0.0,text.as_ptr(),text.as_ptr().add(text.len()),core::ptr::null_mut()).x
+})}

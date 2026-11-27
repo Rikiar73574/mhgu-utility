@@ -10,6 +10,13 @@ ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_PATH = "romfs/nativeNX/plugins/hunters_compendium.nro"
 # Required notices are explicit; no directory/glob can pull local inputs in.
 REQUIRED_FILES = {
+    "romfs/nativeNX/utility/fonts/field-guide.ttf": "build/generated/field-guide.ttf",
+    "romfs/nativeNX/utility/name_slots.bin": "build/generated/name_slots.bin",
+    "romfs/nativeNX/utility/language.ini": "assets/locales/language.ini",
+    "romfs/nativeNX/utility/locales/eng.tsv": "assets/locales/eng.tsv",
+    "romfs/nativeNX/utility/fonts/jpn.ttf": "assets/fonts/jpn.ttf",
+    "romfs/nativeNX/utility/fonts/kor.ttf": "assets/fonts/kor.ttf",
+    "licenses/Noto-OFL.txt": "assets/fonts/OFL.txt",
     "README.md": "README.md",
     "LICENSE": "LICENSE",
     "THIRD_PARTY_NOTICES.md": "RUNTIME_NOTICES.md",
