@@ -24,13 +24,17 @@ class PrepareArtworkTest(unittest.TestCase):
         for kind in range(15):
             if kind != 5:
                 (table / f"weapon{kind:02d}MsgData_eng.gmd").write_bytes(header + b"weapon\0" * 6)
+        for name in ("skillTypeData", "skillData"):
+            (table / f"{name}_eng.gmd").write_bytes(header + b"skill\0description\0")
         (table / "itemData_eng.gmd").write_bytes(header + b"material\0description\0")
         (table / "armorSeriesData_eng.gmd").write_bytes(header + b"armor\0" * 10)
         return ["prepare.py", "--catalog", str(catalog), "--database", str(database),
                 "--game-dir", str(game)]
 
-    def run_preparation(self, root, artwork):
-        argv = self.prepare_inputs(root) + ["--art-dir", str(artwork)]
+    def run_preparation(self, root, artwork=None):
+        argv = self.prepare_inputs(root)
+        if artwork is not None:
+            argv += ["--art-dir", str(artwork)]
         # Only external generators are replaced: these tests exercise the real
         # preparation file operations, with no full game/SQLite fixture needed.
         with patch.multiple(prepare, ROOT=root, DATA=root / "build/data",
@@ -40,6 +44,19 @@ class PrepareArtworkTest(unittest.TestCase):
                 prepare.main()
             except Exception as error:
                 self.fail(f"preparation must preserve valid artwork inputs: {error}")
+
+    def test_artwork_is_optional_and_does_not_reuse_stale_private_assets(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for directory in ("location-art", "weapon-art"):
+                cache = root / "build/data" / directory
+                cache.mkdir(parents=True)
+                (cache / "previous.png").write_bytes(b"private artwork")
+            self.run_preparation(root)
+            for directory in ("location-art", "weapon-art"):
+                self.assertEqual(list((root / "build/data" / directory).iterdir()), [])
+            manifest = json.loads((root / "build/input-manifest.json").read_text())
+            self.assertIn("omitted", manifest["artwork"])
 
     def test_new_cache_removes_stale_assets_and_keeps_only_allowed_suffixes(self):
         with tempfile.TemporaryDirectory() as temporary:

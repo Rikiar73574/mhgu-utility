@@ -9,7 +9,7 @@ Populate the Cargo cache separately if building on a new machine.
 
 ## Reuse existing local generated data
 
-This preserves the ten complete generated Rust modules byte-for-byte, including
+This preserves the eleven complete generated Rust modules and runtime font/name-slot files byte-for-byte, including
 all existing artwork, item/weapon metadata and game ID mappings. Use a snapshot
 prepared for this source revision; older caches lack source targets, point
 groups, native armor/jewel recipes, Prowler/target quest flags or native font metrics and must be regenerated. It copies only
@@ -30,7 +30,8 @@ source, Cargo and Rustup roots so panic paths do not disclose local directories.
 ## Regenerate local data
 
 Provide the Kiranico catalog JSON, Gathering Hall Studios' MHGenDatabase SQLite
-database, an owned MHGU 1.4 English dump, and the existing local artwork cache.
+database and an owned MHGU 1.4 English dump. The location and weapon artwork
+cache is optional; a clean build does not need the author's private cache.
 The database's upstream source is
 [MHGenDatabase](https://github.com/gatheringhallstudios/MHGenDatabase), under
 `app/src/main/assets/databases/`. Keep its MIT notice. The artwork cache contains
@@ -41,10 +42,16 @@ separate from the authored code license. No artwork is downloaded by preparation
 python3 tools/prepare.py \
   --catalog /path/to/catalog.json \
   --database /path/to/mhgu.db \
-  --game-dir /path/to/owned-game/data \
-  --art-dir /path/to/existing-compendium/data
+  --game-dir /path/to/owned-game/data
 MHGU_TOOLCHAIN=/path/to/toolchain bash mod/build-local.sh
 ```
+
+Without `--art-dir`, location cards retain the extracted game minimaps and weapon
+details retain the bundled weapon-type icons. Optional illustrations and weapon
+renders are omitted. Preparation clears only its two artwork caches under
+ignored `build/data/`, so an artwork-free rebuild cannot silently reuse assets
+from a previous preparation. To include your own cache, add
+`--art-dir /path/to/cache` with both `location-art/` and `weapon-art/` directories.
 
 Preparation reads English GMD name slots, minimap TEX files, native window/title
 artwork and the English font glyphs from the owned dump. `fonttools` converts the
@@ -52,7 +59,7 @@ locally extracted glyph masks into proportional outlines for the existing Forge
 font atlas. Optionally set `MHGU_FONT_DIR` to a locally installed Hunter Font
 directory containing `font_festa.gfd` and `font_festa_*_HQ.tex.z` to use its
 higher-resolution glyphs. No font or UI artwork is downloaded. All derived JSON,
-PNG and Rust files remain in ignored `build/`; none is a source-distribution input. The ten generated Rust modules are copied into
+PNG and Rust files remain in ignored `build/`; none is a source-distribution input. The eleven generated Rust modules are copied into
 Cargo's output directory by `mod/build.rs`. `build/input-manifest.json` records
 input/generated hashes without storing private input paths.
 
@@ -98,3 +105,6 @@ plugin combination fits; account for every loaded NRO and loader headroom.
 After building, create the runtime archive with `python3 tools/package.py`.
 It includes only the NRO, README, licenses, provenance notices and checksums.
 Generated inputs, game dumps, caches and saves are excluded.
+
+See [runtime localization](LOCALIZATION.md) for language configuration, translator
+files, CJK fonts and the MHXX verification boundary.

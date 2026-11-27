@@ -1,4 +1,5 @@
 #![no_std]
+mod localization;mod language;
 #[path="../../compat/mapassist-guard/src/runtime.rs"]mod mapassist_guard;
 mod gather;mod gather_map;mod gather_filter;mod gather_menu;mod gather_zones;mod start_menu;
 mod set_workbench;mod set_saved;mod set_focus;mod skill_text;mod set_builder;mod set_skills;mod set_solver;mod set_player;mod set_unlock;mod set_data{include!(concat!(env!("OUT_DIR"),"/set_data.rs"));}
@@ -19,11 +20,8 @@ impl Write for Text{fn write_str(&mut self,s:&str)->fmt::Result{let mut n=s.len(
 #[unsafe(no_mangle)]pub extern "C" fn forge_onInit(){let _=forge::log::init();if input::install(){native_hint::install();armor_preview::install();gather_map::install();start_menu::install();forge::log::prelude::info!("MHGU Utility 0.3 ready: Items / Weapons / Armor / Wishlist / Quest routes");}else{forge::log::prelude::error!("MHGU Utility disabled: HID imports incompatible");}}
 // Recomp completes every plugin initializer before the first update callback.
 #[unsafe(no_mangle)]pub extern "C" fn forge_onUpdate(_dt:f32){smithy::init_after_plugins();mapassist_guard::mapassist_guard_tick(_dt);}
-fn query_match(s:&str,u:&Ui)->bool{
- let mut query=[0;48];let mut n=0;for &b in &u.query[..u.len]{if b.is_ascii_alphanumeric(){query[n]=b.to_ascii_lowercase();n+=1;}}if n==0{return true;}
- let mut hay=[0u8;256];let mut len=0;for &b in s.as_bytes(){if b.is_ascii_alphanumeric()&&len<hay.len(){hay[len]=b.to_ascii_lowercase();len+=1;}}
- hay[..len].windows(n).any(|part|part==&query[..n])
-}
+fn query_match(s:&str,u:&Ui)->bool{language::matches(s,core::str::from_utf8(&u.query[..u.len]).unwrap_or(""))}
+
 fn location_available(id:usize,rank:u8)->bool{
  // These encounter arenas are excluded from the gathering browser.
  if matches!(world::LOCATIONS[id].name,"Forlorn Arena"|"Wyvern's End"|"Sanctuary"){return false;}

@@ -132,7 +132,7 @@ def prepare(game):
         if code==ord('A'):baseline=metric>>24
     font=font_bytes(glyphs,height,baseline);(cache/'native.ttf').write_bytes(font)
     out.append('pub static WIDTHS:&[(u32,u16)]=&['+','.join(f'({code},{advance*1024//height})' for code,(_,advance) in sorted(glyphs.items()))+'];')
-    out.append('pub static FONT:&[u8]=&['+','.join(map(str,font))+'];')
+    (GENERATED/'field-guide.ttf').write_bytes(font)
     (GENERATED/'game_ui.rs').write_text('\n'.join(out)+'\n')
     print('Native UI:',len(images),'sprites,',len(glyphs),'glyphs,',len(font),'font bytes')
 

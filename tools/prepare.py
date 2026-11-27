@@ -3,6 +3,7 @@ import argparse,hashlib,json,os,shutil,subprocess,sys,tempfile
 from pathlib import Path
 from paths import ROOT,DATA,GENERATED
 from game_names import export,armor_names
+from localization import generate as generate_name_slots
 
 def replace_artwork_cache(source_root):
     artwork=(('location-art','.img'),('weapon-art','.png'))
@@ -12,7 +13,7 @@ def replace_artwork_cache(source_root):
         staging=Path(temporary)
         for directory,suffix in artwork:
             destination=staging/directory;destination.mkdir()
-            for source in (source_root/directory).glob('*'+suffix):
+            for source in (source_root/directory).glob('*'+suffix) if source_root else ():
                 if source.is_file():shutil.copyfile(source,destination/source.name)
         for directory,_ in artwork:
             destination=DATA/directory
@@ -25,14 +26,14 @@ def main():
     p.add_argument('--catalog',type=Path)
     p.add_argument('--database',type=Path)
     p.add_argument('--game-dir',type=Path)
-    p.add_argument('--art-dir',type=Path,help='local cache containing location-art/ and weapon-art/')
-    p.add_argument('--generated-dir',type=Path,help='reuse all ten pre-generated Rust data files unchanged')
+    p.add_argument('--art-dir',type=Path,help='optional local location-art/ and weapon-art/ cache; omitted artwork uses existing UI fallbacks')
+    p.add_argument('--generated-dir',type=Path,help='reuse generated Rust modules, name-slot metadata and native font unchanged')
     a=p.parse_args()
     DATA.mkdir(parents=True,exist_ok=True);GENERATED.mkdir(parents=True,exist_ok=True)
     if a.generated_dir:
-        modules=('game_ui','quest_data','armor_data','catalog','world','weapon_data','item_data','map_pixels','ui_pixels','set_data')
-        inputs=[a.generated_dir/f'{name}.rs' for name in modules]
-        if not all(path.is_file() for path in inputs):p.error('generated-dir must contain all ten generated Rust modules')
+        modules=('name_slots','game_ui','quest_data','armor_data','catalog','world','weapon_data','item_data','map_pixels','ui_pixels','set_data')
+        inputs=[a.generated_dir/f'{name}.rs' for name in modules]+[a.generated_dir/'name_slots.bin',a.generated_dir/'field-guide.ttf']
+        if not all(path.is_file() for path in inputs):p.error('generated-dir must contain all eleven Rust modules, name_slots.bin and field-guide.ttf')
         for source in inputs:shutil.copyfile(source,GENERATED/source.name)
         if a.catalog:
             shutil.copyfile(a.catalog,DATA/'catalog.json')
@@ -43,14 +44,15 @@ def main():
         return
     if not all((a.catalog,a.database,a.game_dir)):
         p.error('provide --catalog, --database and --game-dir, or --generated-dir')
-    if not a.art_dir or not (a.art_dir/'location-art').is_dir() or not (a.art_dir/'weapon-art').is_dir():
-        p.error('provide --art-dir with location-art/ and weapon-art/ to preserve the existing UI artwork')
+    if a.art_dir and not all((a.art_dir/name).is_dir() for name in ('location-art','weapon-art')):
+        p.error('--art-dir must contain location-art/ and weapon-art/')
     catalog=json.loads(a.catalog.read_text())
     if catalog.get('schema_version')!=1 or not catalog.get('items') or not catalog.get('weapons'):
         p.error('expected the Kiranico catalog adapter schema_version 1')
     if not a.database.is_file():p.error('MHGenDatabase SQLite file is missing')
     table=a.game_dir/'romfs/nativeNX/eng/table'
     weapons,items=export(table)
+    generate_name_slots(table,GENERATED/'name_slots.rs')
     DATA.mkdir(parents=True,exist_ok=True);GENERATED.mkdir(parents=True,exist_ok=True)
     destination=DATA/'catalog.json'
     if a.catalog.resolve()!=destination.resolve():shutil.copyfile(a.catalog,destination)
@@ -65,6 +67,7 @@ def main():
     manifest={'catalog_sha256':hashlib.sha256(a.catalog.read_bytes()).hexdigest(),
               'database_sha256':hashlib.sha256(a.database.read_bytes()).hexdigest(),
               'generated_sha256':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(GENERATED.glob('*.rs'))},
-              'artwork':'Locally supplied original illustrations/renders are required for full regeneration via --art-dir; no artwork is fetched.'}
+              'artwork':('Locally supplied illustrations/renders via --art-dir; no artwork is fetched.' if a.art_dir else
+                         'Optional illustrations/renders omitted; bundled icons and extracted minimaps remain available.')}
     (ROOT/'build/input-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
 if __name__=='__main__':main()

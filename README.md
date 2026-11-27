@@ -274,3 +274,9 @@ to avoid confusion. See [the naming discussion](https://github.com/Rikiar73574/m
 
 The existing plugin, archive and saved-data filenames remain unchanged for
 compatibility with installed mods, wishlists and settings.
+
+### Language support
+
+[Runtime localization](docs/LOCALIZATION.md) loads names from your installed game
+and supports external UI translations and Japanese/Korean fallback fonts.
+Full MHXX and Korean fan-patch compatibility remains unverified.
