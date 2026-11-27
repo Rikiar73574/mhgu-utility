@@ -206,6 +206,12 @@ renderer and generation paths are retained; supplying the same local generated
 modules preserves the existing full UI. No HuntLog plugin or backend is needed
 at runtime or to compile this standalone tree.
 
+Material-source caches and Wishlist routes check the native quest counter’s
+Village, Hub and G-tier unlock flags before quest appearance and entry checks.
+A later-tier quest cannot make its drops available merely because its entry
+requirements pass. Each search rebuilds this cache. Explicit star overrides use
+the selected scenario instead.
+
 Standard G-rank armor is excluded from automatic Set Builder searches below
 HR 8, even when recipe/source checks return a positive result. An explicit
 G-rank Hub override still supports future planning. Deviant base armor keeps

@@ -25,14 +25,14 @@ fn setup()->Fake{let mut f=Fake::default();f.words.insert(0x1897f78,SAVE);f.word
 #[test]fn planning_stars_are_independent_and_g_rank_uses_separate_hub_levels(){
  assert!(quest_star_match("Village",1,8,8,4));assert!(!quest_star_match("Village",1,9,8,11));
  assert!(quest_star_match("Guild",1,4,0,4));assert!(!quest_star_match("Guild",1,5,10,4));
- assert!(!quest_star_match("Guild",2,1,10,7));assert!(quest_star_match("Guild",2,1,0,8));
- assert!(!quest_star_match("Guild",2,2,10,8));assert!(quest_star_match("Guild",2,4,0,11));
+ assert!(!quest_star_match("Guild",2,11,10,7));assert!(quest_star_match("Guild",2,11,0,8));
+ assert!(!quest_star_match("Guild",2,12,10,8));assert!(quest_star_match("Guild",2,14,0,11));
  assert!(quest_star_match("Guild",1,7,0,11));assert!(!quest_star_match("Village",2,1,10,11));
 }
 #[test]fn planning_excludes_special_hubs_and_undefined_star_levels(){
  for hub in ["Event","Permit","Arena",""]{assert!(!quest_star_match(hub,0,1,10,11));}
  assert!(!quest_star_match("Guild",0,0,10,11));assert!(!quest_star_match("Village",1,11,10,11));
- assert!(!quest_star_match("Guild",2,5,10,11));assert!(!quest_star_match("Guild",3,1,10,11));
+ assert!(!quest_star_match("Guild",2,5,10,11));assert!(!quest_star_match("Guild",2,1,10,11));assert!(!quest_star_match("Guild",3,1,10,11));
 }
 #[test]fn planning_recipes_filter_indexed_absent_routes_without_claiming_unlocks(){
  assert_eq!(planning_recipe(&[1,2],|i|if i==1{None}else{Some(false)}),Some(false));
@@ -65,4 +65,26 @@ fn setup()->Fake{let mut f=Fake::default();f.words.insert(0x1897f78,SAVE);f.word
  // Rarity11 is a special deviant tier, not evidence that the base set is G-only.
  for hr in [1,4,7,8,999]{assert!(armor_rank_allowed(11,Some(hr),255));}
  assert!(armor_rank_allowed(11,Some(999),7));
+}
+
+#[test]fn quest_tier_unlocks_are_required_even_when_appearance_and_entry_pass(){
+ let mut f=setup();f.bytes.insert(PROGRESS+0x500+1025/8,1<<(1025&7));
+ f.bytes.insert(PROGRESS+0x500+1035/8,0);f.bytes.insert(PROGRESS+0x500+1052/8,0);
+ f.bytes.insert(PROGRESS+0x500+112/8,1<<(112&7));
+ f.bytes.insert(PROGRESS+0x500+1400/8,0);
+ assert_eq!(quest_tier(&f,0,"Village",8),Some(true));
+ assert_eq!(quest_tier(&f,0,"Village",9),Some(false));
+ assert_eq!(quest_tier(&f,0,"Village",10),Some(false));
+ assert_eq!(quest_tier(&f,0,"Guild",4),Some(true));
+ assert_eq!(quest_tier(&f,0,"Guild",5),Some(false));
+ assert_eq!(quest_tier(&f,0,"Guild",11),Some(false));
+ f.bytes.insert(PROGRESS+0x500+1400/8,1<<(1400&7));
+ assert_eq!(quest_tier(&f,0,"Guild",11),Some(true));
+}
+#[test]fn quest_tier_is_unknown_on_missing_progress_and_does_not_restrict_special_counters(){
+ let f=Fake::default();assert_eq!(quest_tier(&f,0,"Village",8),None);
+ assert_eq!(quest_tier(&f,0,"Village",1),Some(true));
+ assert_eq!(quest_tier(&f,0,"Guild",1),Some(true));
+ assert_eq!(quest_tier(&f,0,"Guild",8),None);
+ for hub in ["Event","Permit","Arena"]{assert_eq!(quest_tier(&f,0,hub,14),Some(true));}
 }

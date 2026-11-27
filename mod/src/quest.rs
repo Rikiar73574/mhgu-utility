@@ -98,7 +98,7 @@ pub fn best_groups(quests:&[Quest],sources:&[Source],needs:&[Need],unlocked:&[bo
  pub fn tick(){unsafe{let s=&mut*STATE.0.get();if s.count==0||!s.valid||!s.stock||s.progress>=quest_data::QUESTS.len(){return;}if !ready(){s.valid=false;s.available.fill(false);s.len=0;s.route.fill(usize::MAX);s.group=usize::MAX;return;}
   let f:unsafe extern "C" fn(u32,u32,u32)->u32=mem::transmute(forge::mem::text_addr()+0x54af8c);
   for i in s.progress..(s.progress+16).min(quest_data::QUESTS.len()){
-   s.available[i]=f(quest_data::QUESTS[i].id,255,0)&255==1&&eligible(&quest_data::QUESTS[i]);s.progress=i+1;
+   s.available[i]=crate::set_unlock::tier(quest_data::QUESTS[i].hub,quest_data::QUESTS[i].stars)==Some(true)&&f(quest_data::QUESTS[i].id,255,0)&255==1&&eligible(&quest_data::QUESTS[i]);s.progress=i+1;
   }
   if s.progress==quest_data::QUESTS.len(){s.material=0;s.remaining=s.needs;for _ in 0..3{let Some((i,_))=best_groups(quest_data::QUESTS,quest_data::SOURCES,&s.remaining[..s.count],&s.available[..quest_data::QUESTS.len()],&s.route[..s.len],quest_data::POINT_GROUPS,crate::settings::include_prowler())else{break;};s.route[s.len]=i;s.len+=1;for n in &mut s.remaining[..s.count]{if covers_group(i,&quest_data::QUESTS[i],n.item,quest_data::SOURCES,quest_data::POINT_GROUPS){n.quantity=0;}}}}
  }}

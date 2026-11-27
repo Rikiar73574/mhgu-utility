@@ -27,6 +27,21 @@ pub fn gate(m:&impl Memory,b:u32,g:u16)->Option<bool>{
  let progress=m.word(b+0x1884c58)?;if !valid(progress){return None;}
  let n=m.word(b+0x162ea7c+u32::from(g)*4)?;if n>16383{return None;}bit(m,progress+0x500,n)
 }
+/// Star-tier gates from the native quest counter (f_983100). Appearance
+/// f_74af8c and entry f_74ce08 alone do NOT enforce these menu unlocks.
+/// Database Guild G stars are 11..14, not the UI planning levels 8..11.
+pub fn quest_tier(m:&impl Memory,b:u32,hub:&str,stars:u8)->Option<bool>{
+ let flag=match(hub,stars){
+  ("Village"|"Guild",1)=>return Some(true),
+  ("Village",2..=10)=>[10,15,24,28,33,1008,1025,1035,1052][usize::from(stars-2)],
+  ("Guild",2..=7)=>104+u32::from(stars-2)*4,
+  ("Guild",11..=14)=>[1400,1405,1409,1413][usize::from(stars-11)],
+  ("Village"|"Guild",_)=>return None,
+  // Special counters retain their native appearance / entry checks.
+  _=>return Some(true),
+ };
+ let progress=m.word(b+0x1884c58)?;if !valid(progress){return None;}bit(m,progress+0x500,flag)
+}
 /// AND of the recipe's progression condition and every ingredient's potential
 /// acquisition. Unknown ingredients do not become fabricated availability.
 pub fn recipe_available(condition:Option<bool>,materials:&[u16],mut obtainable:impl FnMut(u16)->Option<bool>)->Option<bool>{
@@ -51,7 +66,7 @@ pub fn quest_star_match(hub:&str,rank:u8,stars:u8,village:u8,guild:u8)->bool{
  if village>10||guild>11||stars==0{return false;}
  match hub{
   "Village"=>rank<2&&stars<=10&&stars<=village,
-  "Guild"=>if rank<2{stars<=7&&stars<=guild.min(7)}else{rank==2&&stars<=4&&guild>=8&&stars<=guild-7},
+  "Guild"=>if rank<2{stars<=7&&stars<=guild.min(7)}else{rank==2&&(11..=14).contains(&stars)&&guild>=8&&stars<=guild+3},
   _=>false
  }
 }
@@ -90,7 +105,7 @@ pub fn armor_rank_allowed(rarity:u8,hr:Option<u16>,hub_override:u8)->bool{
   let slot=word(gc+0x30);if slot>=4{return None;}let actor=word(manager+0x1c+slot*4);if !valid(actor){return None;}
   // The same pure quest appearance and entry-check signatures used by the
   // quest planner. Native creation-gate table/getter guards pin MHGU 1.4.
-  if word(b+0x54af8c)!=0xe92d4830||word(b+0x54af90)!=0xe1a05002||word(b+0x54ce08)!=0xe92d47f0||word(b+0x3ba50c)!=0xe92d48f0||word(b+0x5615bc)!=0xe3500004||word(b+0x4a9390)!=0xe1d000bc||word(b+0x162ea7c+20*4)!=387{return None;}
+  if word(b+0x54af8c)!=0xe92d4830||word(b+0x54af90)!=0xe1a05002||word(b+0x54ce08)!=0xe92d47f0||word(b+0x3ba50c)!=0xe92d48f0||word(b+0x5615bc)!=0xe3500004||word(b+0x4a9390)!=0xe1d000bc||word(b+0x162ea7c+20*4)!=387||word(b+0x1650a70+6*4)!=1025||word(b+0x159775c)!=1400{return None;}
   Some((save,gc,actor))
  }
  /// Guard for a prepared cache; false after departure/character replacement.
@@ -106,6 +121,7 @@ pub fn armor_rank_allowed(rarity:u8,hr:Option<u16>,hub_override:u8)->bool{
   if (village!=255&&village>10)||(hub!=255&&hub>11){unsafe{let s=&mut*STATE.0.get();s.valid=false;s.plan=false;}return false;}
   if !begin(){return false;}unsafe{let s=&mut*STATE.0.get();s.plan=true;s.village=village;s.guild=hub;}true
  }
+ pub fn tier(hub:&str,stars:u8)->Option<bool>{quest_tier(&Direct,forge::mem::text_addr(),hub,stars)}
  pub fn planning()->bool{unsafe{(*STATE.0.get()).plan}}
  fn eligible(q:&quest::Quest,actor:u32)->Option<bool>{unsafe{
   if q.entry.contains(&255){return None;}let b=forge::mem::text_addr();
@@ -119,7 +135,7 @@ pub fn armor_rank_allowed(rarity:u8,hr:Option<u16>,hub_override:u8)->bool{
  pub fn tick()->bool{if !ready(){return false;}unsafe{
   let s=&mut*STATE.0.get();
   for i in s.progress..(s.progress+16).min(quest_data::QUESTS.len()){
-   let q=&quest_data::QUESTS[i];let override_value=if s.plan{quest_override(q.hub,q.rank,q.stars,s.village,s.guild)}else{None};let available=if let Some(value)=override_value{Some(value)}else{let f:unsafe extern "C" fn(u32,u32,u32)->u32=mem::transmute((forge::mem::text_addr()+0x54af8c)as usize);if f(q.id,255,0)&255==1{eligible(q,s.actor)}else{Some(false)}};
+   let q=&quest_data::QUESTS[i];let override_value=if s.plan{quest_override(q.hub,q.rank,q.stars,s.village,s.guild)}else{None};let tier_value=if override_value.is_some(){Some(true)}else{tier(q.hub,q.stars)};let available=if let Some(value)=override_value{Some(value)}else if tier_value!=Some(true){tier_value}else{let f:unsafe extern "C" fn(u32,u32,u32)->u32=mem::transmute((forge::mem::text_addr()+0x54af8c)as usize);if f(q.id,255,0)&255==1{eligible(q,s.actor)}else{Some(false)}};
    if available!=Some(false){for source in quest_data::SOURCES{
     // Same exact monster/gather/reward rank matching as quest::covers,
     // applied once per source rather than repeating its per-item scan.
